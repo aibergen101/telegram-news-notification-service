@@ -91,6 +91,12 @@ namespace TelegramApi.Infrastructure.Migrations
                     b.Property<int?>("Duration")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("ErrorDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorText")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsAnonymous")
                         .HasColumnType("boolean");
 
