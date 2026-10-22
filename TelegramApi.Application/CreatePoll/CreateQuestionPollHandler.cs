@@ -53,6 +53,8 @@ public class CreateQuestionPollHandler
         catch (Exception ex)
         {
             poll.Status = PublicationStatus.Failed;
+            poll.ErrorText = ex.Message;
+            poll.ErrorDate = DateTime.UtcNow;
         }
 
         await db.SaveChangesAsync();

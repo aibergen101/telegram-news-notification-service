@@ -15,4 +15,6 @@ public class Poll
     public DateTime CreatedAt { get; set; }
     public PublicationStatus Status { get; set; } = PublicationStatus.Sent;
     public DateTime? DeletedAt { get; set; }
+    public string? ErrorText { get; set; }
+    public DateTime? ErrorDate { get; set; }
 }
