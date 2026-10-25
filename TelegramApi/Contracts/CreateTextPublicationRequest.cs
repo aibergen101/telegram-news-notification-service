@@ -1,2 +1,2 @@
 ﻿namespace TelegramApi.Contracts;
-public record CreateTextPublicationRequest(string ChannelAlias, string Text,List<ButtonApi>? Button);
+public record CreateTextPublicationRequest(string ChannelAlias, string Text,List<ButtonApi>? Buttons);

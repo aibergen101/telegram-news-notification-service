@@ -45,6 +45,8 @@ public class CreateTextPublicationHandler
             publication.Status = PublicationStatus.Failed;
             publication.ErrorText = ex.Message;
             publication.ErrorDate = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            throw;
         }
 
         await db.SaveChangesAsync();

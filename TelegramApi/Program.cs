@@ -80,12 +80,21 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+
 app.UseHttpsRedirection();
 
-app.MapPost("/api/publications", async (CreateTextPublicationRequest request, IMessageBus bus) =>
+app.MapPost("/api/publications", async (
+    CreateTextPublicationRequest request,
+    IMessageBus bus,
+    IValidator<CreateTextPublicationCommand> validator) =>
 {
-    var command = new CreateTextPublicationCommand(request.ChannelAlias, request.Text, request.Button?.Select(x=>new ButtonDto(x.Text,x.Url)).ToList());
-    Guid id = await bus.InvokeAsync<Guid>(command);
+    var command = new CreateTextPublicationCommand(request.ChannelAlias, request.Text, request.Buttons?.Select(x => new ButtonDto(x.Text, x.Url)).ToList());
+
+    var validation = await validator.ValidateAsync(command);
+    if (!validation.IsValid)
+        return Results.ValidationProblem(validation.ToDictionary());
+
+    var id = await bus.InvokeAsync<Guid>(command);
     return Results.Created($"/api/publications/{id}", id);
 }).WithSummary("Create a text publication");
 
