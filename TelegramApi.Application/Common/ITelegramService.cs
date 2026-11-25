@@ -23,6 +23,7 @@ public interface ITelegramService
         string? caption,
         TextFormat format,
         IReadOnlyList<MediaFileDto> files,
+        IReadOnlyList<ButtonDto> buttons,
         CancellationToken ct);
 
     Task<SentMessage> SendPollAsync(
@@ -38,6 +39,28 @@ public interface ITelegramService
     Task StopPollAsync(long chatId, int messageId, CancellationToken ct);
 
     Task DeleteMessagesAsync(long chatId, IReadOnlyCollection<int> messageIds, CancellationToken ct);
+
+    /// <summary>Меняет текст и кнопки текстового сообщения. «Сообщение не изменилось» считается успехом.</summary>
+    Task EditTextAsync(
+        long chatId,
+        int messageId,
+        string text,
+        TextFormat format,
+        IReadOnlyList<ButtonDto> buttons,
+        CancellationToken ct);
+
+    /// <summary>Меняет подпись и кнопки сообщения с файлом. «Сообщение не изменилось» считается успехом.</summary>
+    Task EditCaptionAsync(
+        long chatId,
+        int messageId,
+        string? caption,
+        TextFormat format,
+        IReadOnlyList<ButtonDto> buttons,
+        CancellationToken ct);
+
+    Task PinMessageAsync(long chatId, int messageId, bool disableNotification, CancellationToken ct);
+
+    Task UnpinMessageAsync(long chatId, int messageId, CancellationToken ct);
 
     Task CheckBotAsync(CancellationToken ct);
 

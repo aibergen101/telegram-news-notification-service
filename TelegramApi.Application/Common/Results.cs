@@ -20,6 +20,9 @@ public record PublicationDetails(
     DateTime? SentAt,
     DateTime? DeletedAt,
     DateTime? UpdatedAt,
+    DateTime? EditedAt,
+    bool IsPinned,
+    DateTime? PinnedAt,
     int? ErrorCode,
     string? ErrorText,
     DateTime? ErrorDate);
@@ -43,6 +46,8 @@ public record PollDetails(
     DateTime? ClosedAt,
     DateTime? DeletedAt,
     DateTime? UpdatedAt,
+    bool IsPinned,
+    DateTime? PinnedAt,
     int? ErrorCode,
     string? ErrorText,
     DateTime? ErrorDate);

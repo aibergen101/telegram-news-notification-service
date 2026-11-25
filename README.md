@@ -10,6 +10,7 @@ HTTP API для публикации новостей и опросов в Teleg
 | `TelegramApi.Application` | Команды, запросы, handlers, валидация, интерфейсы |
 | `TelegramApi.Domain` | Сущности и enum |
 | `TelegramApi.Infrastructure` | EF Core, миграции, Telegram.Bot, health checks |
+| `TelegramApi.Tests` | Unit-тесты (валидация, домен) и интеграционные тесты API с PostgreSQL в Docker |
 
 ## Запуск локально
 
@@ -49,15 +50,26 @@ docker run --rm -p 8080:8080 \
 | `POST /api/publications` | Текстовая публикация (JSON) |
 | `POST /api/media-publications` | Публикация с файлами (multipart/form-data) |
 | `GET /api/publications/{id}` | Публикация по идентификатору |
+| `PUT /api/publications/{id}` | Редактирование текста (подписи), формата и кнопок отправленной публикации |
 | `DELETE /api/publications/{id}` | Удаление публикации (все сообщения альбома) |
 | `POST /api/polls` | Создание опроса |
 | `GET /api/polls/{id}` | Опрос по идентификатору |
 | `POST /api/polls/{id}/close` | Закрытие опроса |
 | `DELETE /api/polls/{id}` | Удаление опроса |
+| `PUT /api/publications/{id}/pin`, `PUT /api/polls/{id}/pin` | Закрепить сообщение (`?disableNotification=true` — без уведомления) |
+| `DELETE /api/publications/{id}/pin`, `DELETE /api/polls/{id}/pin` | Открепить сообщение |
 | `GET /api/publications-history` | Единая история: фильтры `status`, `channelAlias`, `from`, `to`, пагинация `page`, `pageSize` |
 | `GET /api/bot/check` | Проверка токена бота |
 | `GET /api/channels/{alias}` | Информация о канале |
 | `GET /health`, `GET /health/telegram` | Health checks: приложение и PostgreSQL / Telegram отдельно |
+
+## Тесты
+
+```bash
+dotnet test
+```
+
+Интеграционные тесты поднимают PostgreSQL через Testcontainers, поэтому нужен запущенный Docker. Telegram в тестах подменяется, реальные сообщения не отправляются.
 
 ## Решения и ограничения
 
@@ -84,3 +96,9 @@ docker run --rm -p 8080:8080 \
 **Опросы.** Продолжительность в секундах от 5 до 600 (ограничение `open_period` Telegram). Закрытие повторно безопасно.
 
 **Удаление.** Повторное удаление безопасно. Запись получает `Deleted` только после успешного ответа Telegram.
+
+**Редактирование.** Только для `Sent`. Текст, формат и кнопки заменяются целиком (пустой список кнопок убирает их), файлы не меняются. У альбома меняется подпись первого сообщения, кнопки недоступны. Опросы Telegram редактировать не позволяет.
+
+**Закрепление.** Только для `Sent`, у альбома закрепляется первое сообщение. Повторные вызовы безопасны. Боту нужно право администратора на закрепление (в канале это право редактирования сообщений), иначе 403.
+
+**Идемпотентность создания.** Заголовок `Idempotency-Key` (до 255 видимых ASCII-символов) для `POST /api/publications`, `/api/media-publications`, `/api/polls`. Ключ хранится в записи бессрочно, уникален в БД. Повтор того же запроса возвращает существующую запись с кодом 200 и заголовком `Idempotent-Replayed: true` без повторной отправки в Telegram. Тот же ключ с другим содержимым (включая содержимое файлов) возвращает 409.

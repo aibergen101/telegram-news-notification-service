@@ -44,6 +44,9 @@ builder.Host.UseWolverine(options =>
 
 var app = builder.Build();
 
+// После Build: инструменты EF останавливают приложение раньше и передают строку подключения сами.
+DependencyInjection.EnsureConnectionStringConfigured(app.Configuration);
+
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 

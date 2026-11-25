@@ -22,6 +22,9 @@ public record PublicationResponse(
     DateTime? SentAt,
     DateTime? DeletedAt,
     DateTime? UpdatedAt,
+    [property: Description("Когда сообщение последний раз редактировалось.")] DateTime? EditedAt,
+    [property: Description("Сообщение закреплено в канале.")] bool IsPinned,
+    DateTime? PinnedAt,
     [property: Description("Код ошибки Telegram, если публикация не удалась.")] int? ErrorCode,
     string? ErrorText,
     DateTime? ErrorDate);
@@ -46,6 +49,8 @@ public record PollResponse(
     DateTime? ClosedAt,
     DateTime? DeletedAt,
     DateTime? UpdatedAt,
+    [property: Description("Сообщение закреплено в канале.")] bool IsPinned,
+    DateTime? PinnedAt,
     int? ErrorCode,
     string? ErrorText,
     DateTime? ErrorDate);

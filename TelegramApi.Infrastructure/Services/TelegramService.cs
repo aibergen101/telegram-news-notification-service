@@ -65,6 +65,7 @@ public class TelegramService(ITelegramBotClient bot, ILogger<TelegramService> lo
         string? caption,
         TextFormat format,
         IReadOnlyList<MediaFileDto> files,
+        IReadOnlyList<ButtonDto> buttons,
         CancellationToken ct)
     {
         var parseMode = ToParseMode(format);
@@ -79,11 +80,11 @@ public class TelegramService(ITelegramBotClient bot, ILogger<TelegramService> lo
             var message = mediaType == MediaType.Photo
                 ? await CallAsync(
                     () => bot.SendPhoto(
-                        channelAlias, input, caption, parseMode, cancellationToken: ct),
+                        channelAlias, input, caption, parseMode, replyMarkup: BuildKeyboard(buttons), cancellationToken: ct),
                     ct)
                 : await CallAsync(
                     () => bot.SendDocument(
-                        channelAlias, input, caption, parseMode, cancellationToken: ct),
+                        channelAlias, input, caption, parseMode, replyMarkup: BuildKeyboard(buttons), cancellationToken: ct),
                     ct);
 
             return [ToResult(message, mediaType)];
@@ -138,6 +139,53 @@ public class TelegramService(ITelegramBotClient bot, ILogger<TelegramService> lo
 
     public Task DeleteMessagesAsync(long chatId, IReadOnlyCollection<int> messageIds, CancellationToken ct) =>
         CallVoidAsync(() => bot.DeleteMessages(chatId, messageIds, ct), ct);
+
+    public Task EditTextAsync(
+        long chatId,
+        int messageId,
+        string text,
+        TextFormat format,
+        IReadOnlyList<ButtonDto> buttons,
+        CancellationToken ct) =>
+        IgnoreNotModifiedAsync(
+            () => bot.EditMessageText(
+                chatId,
+                messageId,
+                text,
+                parseMode: ToParseMode(format),
+                linkPreviewOptions: NoLinkPreview,
+                replyMarkup: BuildKeyboard(buttons),
+                cancellationToken: ct),
+            ct);
+
+    public Task EditCaptionAsync(
+        long chatId,
+        int messageId,
+        string? caption,
+        TextFormat format,
+        IReadOnlyList<ButtonDto> buttons,
+        CancellationToken ct) =>
+        IgnoreNotModifiedAsync(
+            () => bot.EditMessageCaption(
+                chatId,
+                messageId,
+                caption,
+                parseMode: ToParseMode(format),
+                replyMarkup: BuildKeyboard(buttons),
+                cancellationToken: ct),
+            ct);
+
+    public Task PinMessageAsync(long chatId, int messageId, bool disableNotification, CancellationToken ct) =>
+        RequireRightsAsync(
+            () => bot.PinChatMessage(chatId, messageId, disableNotification, cancellationToken: ct),
+            "pin messages",
+            ct);
+
+    public Task UnpinMessageAsync(long chatId, int messageId, CancellationToken ct) =>
+        RequireRightsAsync(
+            () => bot.UnpinChatMessage(chatId, messageId, cancellationToken: ct),
+            "pin messages",
+            ct);
 
     public Task CheckBotAsync(CancellationToken ct) =>
         CallVoidAsync(() => bot.GetMe(ct), ct);
@@ -217,6 +265,35 @@ public class TelegramService(ITelegramBotClient bot, ILogger<TelegramService> lo
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             throw new TelegramOperationException("Telegram request timed out.", isTimeout: true);
+        }
+    }
+
+    /// <summary>Telegram отвечает ошибкой, если новое содержимое совпадает со старым; для API это успех.</summary>
+    private async Task IgnoreNotModifiedAsync(Func<Task> call, CancellationToken ct)
+    {
+        try
+        {
+            await CallVoidAsync(call, ct);
+        }
+        catch (TelegramOperationException ex)
+            when (ex.Message.Contains("message is not modified", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogInformation("Telegram reported that the message was not modified");
+        }
+    }
+
+    /// <summary>Нехватку прав администратора Telegram сообщает как 400; для клиента это 403.</summary>
+    private static async Task RequireRightsAsync(Func<Task> call, string right, CancellationToken ct)
+    {
+        try
+        {
+            await CallVoidAsync(call, ct);
+        }
+        catch (TelegramOperationException ex)
+            when (ex.Message.Contains("not enough rights", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BotLacksRightsException(
+                $"The bot has no right to {right} in this channel. Give it the corresponding administrator right.");
         }
     }
 

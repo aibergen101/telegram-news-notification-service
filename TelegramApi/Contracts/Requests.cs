@@ -15,6 +15,12 @@ public record CreateTextPublicationRequest(
     [property: Description("Форматирование текста: Plain, Html или MarkdownV2.")] TextFormat Format = TextFormat.Plain,
     [property: Description("Кнопки со ссылками, до 100 штук.")] List<ButtonRequest>? Buttons = null);
 
+[Description("Новое содержимое публикации. Текст, формат и кнопки заменяются целиком; файлы не меняются.")]
+public record EditPublicationRequest(
+    [property: Description("Новый текст (1–4096 символов) или подпись к файлам (до 1024 символов, null убирает подпись).")] string? Text,
+    [property: Description("Форматирование: Plain, Html или MarkdownV2.")] TextFormat Format = TextFormat.Plain,
+    [property: Description("Кнопки со ссылками, до 100 штук. Пустой список убирает кнопки. Для альбома кнопки недоступны.")] List<ButtonRequest>? Buttons = null);
+
 [Description("Вариант ответа в опросе.")]
 public record PollOptionRequest(
     [property: Description("Текст варианта, 1–100 символов.")] string Text);
@@ -42,4 +48,7 @@ public class CreateMediaPublicationRequest
 
     [Description("Файлы: один файл или альбом из 2–10 файлов одного вида (изображения или документы).")]
     public IFormFileCollection Files { get; set; } = new FormFileCollection();
+
+    [Description("Кнопки со ссылками (поля Buttons[0].Text, Buttons[0].Url и т. д.), до 100 штук. Только для одного файла: к альбому Telegram их не прикрепляет.")]
+    public List<ButtonRequest>? Buttons { get; set; }
 }

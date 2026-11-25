@@ -5,11 +5,15 @@ using TelegramApi.Domain;
 
 namespace TelegramApi.Application.Publications.CreateMedia;
 
+/// <param name="Buttons">Кнопки со ссылками; Telegram прикрепляет их только к одиночному файлу, не к альбому.</param>
+/// <param name="IdempotencyKey">Необязательный ключ идемпотентности из заголовка Idempotency-Key.</param>
 public record CreateMediaPublicationCommand(
     string ChannelAlias,
     string? Text,
     TextFormat Format,
-    IReadOnlyList<MediaFileDto> Files);
+    IReadOnlyList<MediaFileDto> Files,
+    IReadOnlyList<ButtonDto> Buttons,
+    string? IdempotencyKey = null);
 
 public class CreateMediaPublicationValidator : AbstractValidator<CreateMediaPublicationCommand>
 {
@@ -36,6 +40,19 @@ public class CreateMediaPublicationValidator : AbstractValidator<CreateMediaPubl
             .WithMessage("Images and documents cannot be mixed in one publication: Telegram does not allow such albums.");
 
         RuleForEach(x => x.Files).SetValidator(new MediaFileDtoValidator());
+
+        RuleFor(x => x.Buttons)
+            .Must(buttons => buttons.Count <= TelegramLimits.MaxButtons)
+            .WithMessage($"No more than {TelegramLimits.MaxButtons} buttons are allowed.");
+
+        RuleFor(x => x.Buttons)
+            .Empty()
+            .When(x => x.Files.Count > 1)
+            .WithMessage("Buttons can be attached only to a single file: Telegram does not attach them to albums.");
+
+        RuleForEach(x => x.Buttons).SetValidator(new ButtonDtoValidator());
+
+        RuleFor(x => x.IdempotencyKey).MustBeIdempotencyKey().When(x => x.IdempotencyKey is not null);
     }
 }
 
@@ -69,7 +86,7 @@ public class MediaFileDtoValidator : AbstractValidator<MediaFileDto>
 
 public class CreateMediaPublicationHandler
 {
-    public static async Task<PublicationDetails> Handle(
+    public static async Task<CreateResult<PublicationDetails>> Handle(
         CreateMediaPublicationCommand command,
         IApplicationDbContext db,
         ITelegramService telegram,
@@ -77,6 +94,39 @@ public class CreateMediaPublicationHandler
         CancellationToken ct)
     {
         var alias = ChannelAlias.Normalize(command.ChannelAlias);
+
+        string? hash = null;
+        if (command.IdempotencyKey is { } key)
+        {
+            var files = new List<object>(command.Files.Count);
+            foreach (var file in command.Files)
+            {
+                files.Add(new
+                {
+                    file.FileName,
+                    file.ContentType,
+                    file.Length,
+                    Sha256 = await Idempotency.HashStreamAsync(file.Content, ct)
+                });
+            }
+
+            hash = Idempotency.ComputeHash(new
+            {
+                Kind = "media",
+                Alias = alias,
+                command.Text,
+                command.Format,
+                Files = files,
+                command.Buttons
+            });
+
+            var replay = await Idempotency.FindReplayAsync<Publication>(db, key, hash, ct);
+            if (replay is not null)
+            {
+                return new(replay.ToDetails(), Replayed: true);
+            }
+        }
+
         await telegram.EnsureCanPublishAsync(alias, ct);
 
         var publication = new Publication
@@ -85,16 +135,22 @@ public class CreateMediaPublicationHandler
             TgAlias = alias,
             Text = command.Text,
             Format = command.Format,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Buttons = command.Buttons.ToEntities(),
+            IdempotencyKey = command.IdempotencyKey,
+            IdempotencyHash = hash
         };
 
         db.Publications.Add(publication);
-        await db.SaveChangesAsync(ct);
+        if (await Idempotency.SaveNewAsync(publication, db, ct) is { } winner)
+        {
+            return new(winner.ToDetails(), Replayed: true);
+        }
 
         await PublishFlow.ExecuteAsync(publication, db, logger, async () =>
         {
             var results = await telegram.SendMediaAsync(
-                alias, command.Text, command.Format, command.Files, ct);
+                alias, command.Text, command.Format, command.Files, command.Buttons, ct);
 
             for (var i = 0; i < results.Count; i++)
             {
@@ -111,6 +167,6 @@ public class CreateMediaPublicationHandler
             publication.MarkSent(results[0].ChatId, results[0].MessageId, DateTime.UtcNow);
         });
 
-        return publication.ToDetails();
+        return new(publication.ToDetails(), Replayed: false);
     }
 }

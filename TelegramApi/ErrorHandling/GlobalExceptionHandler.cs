@@ -66,7 +66,7 @@ public sealed class GlobalExceptionHandler(
                 return new ProblemDetails
                 {
                     Status = StatusCodes.Status403Forbidden,
-                    Title = "The bot has no rights to publish to this channel",
+                    Title = "The bot lacks the required rights in this channel",
                     Detail = exception.Message
                 };
 

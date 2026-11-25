@@ -2,33 +2,51 @@ using TelegramApi.Application.Common;
 using TelegramApi.Application.Polls.CreatePoll;
 using TelegramApi.Application.Publications.CreateMedia;
 using TelegramApi.Application.Publications.CreateText;
+using TelegramApi.Application.Publications.EditPublication;
 using TelegramApi.Contracts;
 
 namespace TelegramApi.Mapping;
 
 public static class ApiMappings
 {
-    public static CreateTextPublicationCommand ToCommand(this CreateTextPublicationRequest request) => new(
+    public static CreateTextPublicationCommand ToCommand(
+        this CreateTextPublicationRequest request,
+        string? idempotencyKey) => new(
         request.ChannelAlias,
         request.Text,
         request.Format,
-        (request.Buttons ?? []).Select(b => new ButtonDto(b.Text, b.Url)).ToList());
+        ToDtos(request.Buttons),
+        idempotencyKey);
 
-    public static CreateQuestionPollCommand ToCommand(this CreatePollRequest request) => new(
+    public static CreateQuestionPollCommand ToCommand(this CreatePollRequest request, string? idempotencyKey) => new(
         request.ChannelAlias,
         request.Question,
         (request.Options ?? []).Select(o => new PollOptionDto(o.Text)).ToList(),
         request.AllowMultipleAnswers,
         request.IsAnonymous,
-        request.Duration);
+        request.Duration,
+        idempotencyKey);
 
-    public static CreateMediaPublicationCommand ToCommand(this CreateMediaPublicationRequest request) => new(
+    public static CreateMediaPublicationCommand ToCommand(
+        this CreateMediaPublicationRequest request,
+        string? idempotencyKey) => new(
         request.ChannelAlias,
         string.IsNullOrWhiteSpace(request.Text) ? null : request.Text,
         request.Format,
         (request.Files ?? new FormFileCollection())
             .Select(f => new MediaFileDto(f.FileName, f.OpenReadStream(), f.ContentType, f.Length))
-            .ToList());
+            .ToList(),
+        ToDtos(request.Buttons),
+        idempotencyKey);
+
+    public static EditPublicationCommand ToCommand(this EditPublicationRequest request, Guid id) => new(
+        id,
+        request.Text,
+        request.Format,
+        ToDtos(request.Buttons));
+
+    private static List<ButtonDto> ToDtos(List<ButtonRequest>? buttons) =>
+        (buttons ?? []).Select(b => new ButtonDto(b.Text, b.Url)).ToList();
 
     public static PublicationResponse ToResponse(this PublicationDetails p) => new(
         p.Id,
@@ -44,6 +62,9 @@ public static class ApiMappings
         p.SentAt,
         p.DeletedAt,
         p.UpdatedAt,
+        p.EditedAt,
+        p.IsPinned,
+        p.PinnedAt,
         p.ErrorCode,
         p.ErrorText,
         p.ErrorDate);
@@ -65,6 +86,8 @@ public static class ApiMappings
         p.ClosedAt,
         p.DeletedAt,
         p.UpdatedAt,
+        p.IsPinned,
+        p.PinnedAt,
         p.ErrorCode,
         p.ErrorText,
         p.ErrorDate);

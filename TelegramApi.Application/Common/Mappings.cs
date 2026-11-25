@@ -4,14 +4,16 @@ namespace TelegramApi.Application.Common;
 
 public static class Mappings
 {
+    // Идентификаторы не задаются: EF Core генерирует их при добавлении. Заданный Guid у новой дочерней сущности
+    // в уже отслеживаемой публикации EF принял бы за существующую строку (UPDATE вместо INSERT).
     public static List<Button> ToEntities(this IReadOnlyList<ButtonDto> buttons) =>
         buttons
-            .Select((b, index) => new Button { Id = Guid.NewGuid(), Text = b.Text, Url = b.Url, Order = index })
+            .Select((b, index) => new Button { Text = b.Text, Url = b.Url, Order = index })
             .ToList();
 
     public static List<PollOption> ToEntities(this IReadOnlyList<PollOptionDto> options) =>
         options
-            .Select((o, index) => new PollOption { Id = Guid.NewGuid(), Text = o.Text, Order = index })
+            .Select((o, index) => new PollOption { Text = o.Text, Order = index })
             .ToList();
 
     public static PublicationDetails ToDetails(this Publication p) => new(
@@ -30,6 +32,9 @@ public static class Mappings
         p.SentAt,
         p.DeletedAt,
         p.UpdatedAt,
+        p.EditedAt,
+        p.IsPinned,
+        p.PinnedAt,
         p.ErrorCode,
         p.ErrorText,
         p.ErrorDate);
@@ -51,6 +56,8 @@ public static class Mappings
         p.ClosedAt,
         p.DeletedAt,
         p.UpdatedAt,
+        p.IsPinned,
+        p.PinnedAt,
         p.ErrorCode,
         p.ErrorText,
         p.ErrorDate);

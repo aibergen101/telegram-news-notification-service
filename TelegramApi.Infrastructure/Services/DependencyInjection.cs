@@ -9,16 +9,34 @@ namespace TelegramApi.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    private const string ConnectionStringName = "DefaultConnection";
+
+    /// <summary>Останавливает запуск с понятной ошибкой, если строка подключения не задана.</summary>
+    public static void EnsureConnectionStringConfigured(IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
-        if (string.IsNullOrWhiteSpace(connectionString))
+        if (string.IsNullOrWhiteSpace(configuration.GetConnectionString(ConnectionStringName)))
         {
             throw new InvalidOperationException(
                 "ConnectionStrings:DefaultConnection is not configured. Set it via user-secrets or an environment variable.");
         }
+    }
 
-        services.AddDbContext<TelegramApiDbContext>(options => options.UseNpgsql(connectionString));
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Пустая строка подключения допустима только для инструментов EF (dotnet ef ... --connection):
+        // при обычном запуске её проверяет EnsureConnectionStringConfigured.
+        var connectionString = configuration.GetConnectionString(ConnectionStringName);
+        services.AddDbContext<TelegramApiDbContext>(options =>
+        {
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                options.UseNpgsql();
+            }
+            else
+            {
+                options.UseNpgsql(connectionString);
+            }
+        });
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<TelegramApiDbContext>());
 

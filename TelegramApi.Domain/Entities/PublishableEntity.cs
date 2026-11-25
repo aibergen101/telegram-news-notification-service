@@ -8,6 +8,8 @@ public abstract class PublishableEntity
 {
     public const int MaxErrorTextLength = 1000;
 
+    public const int MaxIdempotencyKeyLength = 255;
+
     public Guid Id { get; set; }
 
     public string TgAlias { get; set; } = string.Empty;
@@ -36,6 +38,17 @@ public abstract class PublishableEntity
 
     public DateTime? ErrorDate { get; set; }
 
+    /// <summary>Сообщение закреплено в канале (для альбома закрепляется первое сообщение).</summary>
+    public bool IsPinned { get; set; }
+
+    public DateTime? PinnedAt { get; set; }
+
+    /// <summary>Ключ идемпотентности, переданный клиентом при создании. Уникален в пределах таблицы.</summary>
+    public string? IdempotencyKey { get; set; }
+
+    /// <summary>SHA-256 содержимого запроса создания: по нему повтор с тем же ключом отличается от другого запроса.</summary>
+    public string? IdempotencyHash { get; set; }
+
     public void MarkSent(long chatId, int messageId, DateTime now)
     {
         TgChatId = chatId;
@@ -58,6 +71,22 @@ public abstract class PublishableEntity
     {
         Status = PublicationStatus.Deleted;
         DeletedAt = now;
+        IsPinned = false;
+        PinnedAt = null;
+        UpdatedAt = now;
+    }
+
+    public void MarkPinned(DateTime now)
+    {
+        IsPinned = true;
+        PinnedAt = now;
+        UpdatedAt = now;
+    }
+
+    public void MarkUnpinned(DateTime now)
+    {
+        IsPinned = false;
+        PinnedAt = null;
         UpdatedAt = now;
     }
 }
