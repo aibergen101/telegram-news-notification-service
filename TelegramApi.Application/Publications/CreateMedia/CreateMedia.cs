@@ -13,7 +13,8 @@ public record CreateMediaPublicationCommand(
     TextFormat Format,
     IReadOnlyList<MediaFileDto> Files,
     IReadOnlyList<ButtonDto> Buttons,
-    string? IdempotencyKey = null);
+    string? IdempotencyKey = null,
+    string? Link = null);
 
 public class CreateMediaPublicationValidator : AbstractValidator<CreateMediaPublicationCommand>
 {
@@ -21,9 +22,11 @@ public class CreateMediaPublicationValidator : AbstractValidator<CreateMediaPubl
     {
         RuleFor(x => x.ChannelAlias).MustBeChannelAlias();
 
-        RuleFor(x => x.Text)
-            .MaximumLength(TelegramLimits.MaxCaptionLength)
-            .WithMessage($"Caption must not be longer than {TelegramLimits.MaxCaptionLength} characters.");
+        RuleFor(x => x.Link).MustBeLink();
+        RuleFor(x => x)
+            .Must(x => MessageText.Length(x.Text, x.Link) <= TelegramLimits.MaxCaptionLength)
+            .OverridePropertyName(nameof(CreateMediaPublicationCommand.Text))
+            .WithMessage($"Caption together with the link must not be longer than {TelegramLimits.MaxCaptionLength} characters.");
 
         RuleFor(x => x.Format).IsInEnum();
 
@@ -115,6 +118,7 @@ public class CreateMediaPublicationHandler
                 Kind = "media",
                 Alias = alias,
                 command.Text,
+                command.Link,
                 command.Format,
                 Files = files,
                 command.Buttons
@@ -134,9 +138,19 @@ public class CreateMediaPublicationHandler
             Id = Guid.NewGuid(),
             TgAlias = alias,
             Text = command.Text,
+            Link = command.Link,
             Format = command.Format,
             CreatedAt = DateTime.UtcNow,
             Buttons = command.Buttons.ToEntities(),
+            // Файлы записываются до отправки, чтобы и у Failed-публикации было видно, что в ней было (ТЗ 4.7).
+            MediaFiles = command.Files
+                .Select((file, index) => new MediaFile
+                {
+                    FileName = file.FileName,
+                    MediaType = MediaRules.Classify(file.ContentType),
+                    Order = index
+                })
+                .ToList(),
             IdempotencyKey = command.IdempotencyKey,
             IdempotencyHash = hash
         };
@@ -149,19 +163,16 @@ public class CreateMediaPublicationHandler
 
         await PublishFlow.ExecuteAsync(publication, db, logger, async () =>
         {
+            var caption = MessageText.Compose(command.Text, command.Link, command.Format);
             var results = await telegram.SendMediaAsync(
-                alias, command.Text, command.Format, command.Files, command.Buttons, ct);
+                alias, caption, command.Format, command.Files, command.Buttons, ct);
 
+            var files = publication.MediaFiles.OrderBy(m => m.Order).ToList();
             for (var i = 0; i < results.Count; i++)
             {
-                publication.MediaFiles.Add(new MediaFile
-                {
-                    FileName = command.Files[i].FileName,
-                    MediaType = results[i].MediaType,
-                    TgFileId = results[i].TgFileId,
-                    TgMessageId = results[i].MessageId,
-                    Order = i
-                });
+                files[i].MediaType = results[i].MediaType;
+                files[i].TgFileId = results[i].TgFileId;
+                files[i].TgMessageId = results[i].MessageId;
             }
 
             publication.MarkSent(results[0].ChatId, results[0].MessageId, DateTime.UtcNow);

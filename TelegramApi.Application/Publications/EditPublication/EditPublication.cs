@@ -16,14 +16,18 @@ public record EditPublicationCommand(
     Guid Id,
     string? Text,
     TextFormat Format,
-    IReadOnlyList<ButtonDto> Buttons);
+    IReadOnlyList<ButtonDto> Buttons,
+    string? Link = null);
 
 public class EditPublicationValidator : AbstractValidator<EditPublicationCommand>
 {
     public EditPublicationValidator()
     {
-        RuleFor(x => x.Text)
-            .MaximumLength(TelegramLimits.MaxMessageLength);
+        RuleFor(x => x.Link).MustBeLink();
+        RuleFor(x => x)
+            .Must(x => MessageText.Length(x.Text, x.Link) <= TelegramLimits.MaxMessageLength)
+            .OverridePropertyName(nameof(EditPublicationCommand.Text))
+            .WithMessage($"Text together with the link must not be longer than {TelegramLimits.MaxMessageLength} characters.");
 
         RuleFor(x => x.Format).IsInEnum();
 
@@ -59,19 +63,21 @@ public class EditPublicationHandler
         // Правила, зависящие от вида уже отправленного сообщения.
         ValidateAgainstMessageKind(publication, command);
 
+        var messageText = MessageText.Compose(command.Text, command.Link, command.Format);
+
         if (publication.HasMedia)
         {
             // Подпись альбома хранится в первом сообщении, оно же TgMsgId публикации.
             await telegram.EditCaptionAsync(
-                publication.TgChatId, publication.TgMsgId, command.Text, command.Format, command.Buttons, ct);
+                publication.TgChatId, publication.TgMsgId, messageText, command.Format, command.Buttons, ct);
         }
         else
         {
             await telegram.EditTextAsync(
-                publication.TgChatId, publication.TgMsgId, command.Text!, command.Format, command.Buttons, ct);
+                publication.TgChatId, publication.TgMsgId, messageText!, command.Format, command.Buttons, ct);
         }
 
-        publication.MarkEdited(command.Text, command.Format, command.Buttons.ToEntities(), DateTime.UtcNow);
+        publication.MarkEdited(command.Text, command.Link, command.Format, command.Buttons.ToEntities(), DateTime.UtcNow);
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Publication {PublicationId} in {Channel} edited", publication.Id, publication.TgAlias);
 
@@ -82,16 +88,16 @@ public class EditPublicationHandler
     {
         var errors = new List<ValidationFailure>();
 
-        if (!publication.HasMedia && string.IsNullOrEmpty(command.Text))
+        if (!publication.HasMedia && string.IsNullOrEmpty(command.Text) && string.IsNullOrEmpty(command.Link))
         {
-            errors.Add(new(nameof(command.Text), "Text of a text publication must not be empty."));
+            errors.Add(new(nameof(command.Text), "Text or Link of a text publication must not be empty."));
         }
 
-        if (publication.HasMedia && command.Text?.Length > TelegramLimits.MaxCaptionLength)
+        if (publication.HasMedia && MessageText.Length(command.Text, command.Link) > TelegramLimits.MaxCaptionLength)
         {
             errors.Add(new(
                 nameof(command.Text),
-                $"Caption must not be longer than {TelegramLimits.MaxCaptionLength} characters."));
+                $"Caption together with the link must not be longer than {TelegramLimits.MaxCaptionLength} characters."));
         }
 
         if (publication.IsAlbum && command.Buttons.Count > 0)

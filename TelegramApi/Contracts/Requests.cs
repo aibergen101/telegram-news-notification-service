@@ -11,15 +11,17 @@ public record ButtonRequest(
 [Description("Запрос на создание текстовой публикации.")]
 public record CreateTextPublicationRequest(
     [property: Description("Канал: @username (с @ или без).")] string ChannelAlias,
-    [property: Description("Текст сообщения, 1–4096 символов.")] string Text,
+    [property: Description("Текст сообщения. Обязателен, если не задана ссылка Link. Вместе со ссылкой до 4096 символов.")] string? Text,
     [property: Description("Форматирование текста: Plain, Html или MarkdownV2.")] TextFormat Format = TextFormat.Plain,
-    [property: Description("Кнопки со ссылками, до 100 штук.")] List<ButtonRequest>? Buttons = null);
+    [property: Description("Кнопки со ссылками, до 100 штук.")] List<ButtonRequest>? Buttons = null,
+    [property: Description("Ссылка отдельным полем: абсолютный http(s) адрес до 2048 символов. Добавляется отдельной строкой в конец текста; превью ссылки не показывается.")] string? Link = null);
 
 [Description("Новое содержимое публикации. Текст, формат и кнопки заменяются целиком; файлы не меняются.")]
 public record EditPublicationRequest(
     [property: Description("Новый текст (1–4096 символов) или подпись к файлам (до 1024 символов, null убирает подпись).")] string? Text,
     [property: Description("Форматирование: Plain, Html или MarkdownV2.")] TextFormat Format = TextFormat.Plain,
-    [property: Description("Кнопки со ссылками, до 100 штук. Пустой список убирает кнопки. Для альбома кнопки недоступны.")] List<ButtonRequest>? Buttons = null);
+    [property: Description("Кнопки со ссылками, до 100 штук. Пустой список убирает кнопки. Для альбома кнопки недоступны.")] List<ButtonRequest>? Buttons = null,
+    [property: Description("Ссылка отдельным полем: абсолютный http(s) адрес. Добавляется в конец текста или подписи; null убирает ссылку.")] string? Link = null);
 
 [Description("Вариант ответа в опросе.")]
 public record PollOptionRequest(
@@ -42,6 +44,9 @@ public class CreateMediaPublicationRequest
 
     [Description("Подпись к файлам, до 1024 символов. Необязательно.")]
     public string? Text { get; set; }
+
+    [Description("Ссылка отдельным полем: абсолютный http(s) адрес. Добавляется отдельной строкой в конец подписи; вместе с подписью до 1024 символов.")]
+    public string? Link { get; set; }
 
     [Description("Форматирование подписи: Plain, Html или MarkdownV2.")]
     public TextFormat Format { get; set; } = TextFormat.Plain;

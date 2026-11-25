@@ -19,7 +19,8 @@ public static class ApiMappings
         request.Text,
         request.Format,
         ToDtos(request.Buttons),
-        idempotencyKey);
+        idempotencyKey,
+        NullIfBlank(request.Link));
 
     public static CreateQuestionPollCommand ToCommand(this CreatePollRequest request, string? idempotencyKey) => new(
         request.ChannelAlias,
@@ -40,13 +41,15 @@ public static class ApiMappings
             .Select(f => new MediaFileDto(f.FileName, f.OpenReadStream(), f.ContentType, f.Length))
             .ToList(),
         ToDtos(ParseFormButtons(request.Buttons)),
-        idempotencyKey);
+        idempotencyKey,
+        NullIfBlank(request.Link));
 
     public static EditPublicationCommand ToCommand(this EditPublicationRequest request, Guid id) => new(
         id,
         request.Text,
         request.Format,
-        ToDtos(request.Buttons));
+        ToDtos(request.Buttons),
+        NullIfBlank(request.Link));
 
     /// <summary>Разбирает поле Buttons multipart-формы (JSON-массив). Ошибка разбора — 400 с понятным текстом.</summary>
     private static List<ButtonRequest>? ParseFormButtons(string? json)
@@ -77,6 +80,8 @@ public static class ApiMappings
         }
     }
 
+    private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private static readonly JsonSerializerOptions FormJson = new(JsonSerializerDefaults.Web);
 
     private static List<ButtonDto> ToDtos(List<ButtonRequest>? buttons) =>
@@ -89,6 +94,7 @@ public static class ApiMappings
         p.TgMessageId,
         p.Status,
         p.Text,
+        p.Link,
         p.Format,
         p.Buttons.Select(b => new ButtonResponse(b.Text, b.Url)).ToList(),
         p.MediaFiles.Select(m => new MediaFileResponse(m.FileName, m.MediaType, m.TgFileId, m.TgMessageId, m.Order)).ToList(),

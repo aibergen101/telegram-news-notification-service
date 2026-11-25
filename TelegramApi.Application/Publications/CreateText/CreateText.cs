@@ -8,10 +8,11 @@ namespace TelegramApi.Application.Publications.CreateText;
 /// <param name="IdempotencyKey">Необязательный ключ идемпотентности из заголовка Idempotency-Key.</param>
 public record CreateTextPublicationCommand(
     string ChannelAlias,
-    string Text,
+    string? Text,
     TextFormat Format,
     IReadOnlyList<ButtonDto> Buttons,
-    string? IdempotencyKey = null);
+    string? IdempotencyKey = null,
+    string? Link = null);
 
 public class CreateTextPublicationValidator : AbstractValidator<CreateTextPublicationCommand>
 {
@@ -21,7 +22,13 @@ public class CreateTextPublicationValidator : AbstractValidator<CreateTextPublic
 
         RuleFor(x => x.Text)
             .NotEmpty()
-            .MaximumLength(TelegramLimits.MaxMessageLength);
+            .When(x => string.IsNullOrEmpty(x.Link))
+            .WithMessage("Text or Link must be provided.");
+        RuleFor(x => x.Link).MustBeLink();
+        RuleFor(x => x)
+            .Must(x => MessageText.Length(x.Text, x.Link) <= TelegramLimits.MaxMessageLength)
+            .OverridePropertyName(nameof(CreateTextPublicationCommand.Text))
+            .WithMessage($"Text together with the link must not be longer than {TelegramLimits.MaxMessageLength} characters.");
 
         RuleFor(x => x.Format).IsInEnum();
 
@@ -54,6 +61,7 @@ public class CreateTextPublicationHandler
                 Kind = "text",
                 Alias = alias,
                 command.Text,
+                command.Link,
                 command.Format,
                 command.Buttons
             });
@@ -72,6 +80,7 @@ public class CreateTextPublicationHandler
             Id = Guid.NewGuid(),
             TgAlias = alias,
             Text = command.Text,
+            Link = command.Link,
             Format = command.Format,
             CreatedAt = DateTime.UtcNow,
             Buttons = command.Buttons.ToEntities(),
@@ -87,7 +96,8 @@ public class CreateTextPublicationHandler
 
         await PublishFlow.ExecuteAsync(publication, db, logger, async () =>
         {
-            var sent = await telegram.SendTextAsync(alias, command.Text, command.Format, command.Buttons, ct);
+            var sent = await telegram.SendTextAsync(
+                alias, MessageText.Compose(command.Text, command.Link, command.Format)!, command.Format, command.Buttons, ct);
             publication.MarkSent(sent.ChatId, sent.MessageId, DateTime.UtcNow);
         });
 

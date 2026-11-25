@@ -23,6 +23,7 @@ public static class Mappings
         p.TgMsgId,
         p.Status,
         p.Text,
+        p.Link,
         p.Format,
         p.Buttons.OrderBy(b => b.Order).Select(b => new ButtonResult(b.Text, b.Url)).ToList(),
         p.MediaFiles.OrderBy(m => m.Order)

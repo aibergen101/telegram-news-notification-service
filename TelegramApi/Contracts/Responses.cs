@@ -5,7 +5,8 @@ namespace TelegramApi.Contracts;
 
 public record ButtonResponse(string Text, string Url);
 
-public record MediaFileResponse(string FileName, MediaType MediaType, string TgFileId, int TgMessageId, int Order);
+[Description("Файл публикации. TgFileId и TgMessageId пусты, если Telegram файл не принял (статус Failed).")]
+public record MediaFileResponse(string FileName, MediaType MediaType, string? TgFileId, int? TgMessageId, int Order);
 
 [Description("Публикация со всеми сохранёнными данными.")]
 public record PublicationResponse(
@@ -15,6 +16,7 @@ public record PublicationResponse(
     int TgMessageId,
     PublicationStatus Status,
     string? Text,
+    [property: Description("Ссылка, переданная отдельным полем.")] string? Link,
     TextFormat Format,
     IReadOnlyList<ButtonResponse> Buttons,
     IReadOnlyList<MediaFileResponse> MediaFiles,
