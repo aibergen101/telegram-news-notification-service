@@ -1,0 +1,130 @@
+using FluentValidation;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using TelegramApi.Application.Common;
+
+namespace TelegramApi.ErrorHandling;
+
+/// <summary>
+/// Единое место, где исключения превращаются в Problem Details (RFC 9457).
+/// Внутренние тексты неожиданных ошибок клиенту не отдаются, они только пишутся в лог.
+/// </summary>
+public sealed class GlobalExceptionHandler(
+    IProblemDetailsService problemDetailsService,
+    ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
+{
+    public async ValueTask<bool> TryHandleAsync(
+        HttpContext httpContext,
+        Exception exception,
+        CancellationToken cancellationToken)
+    {
+
+        var problem = CreateProblem(exception);
+        Log(exception, problem.Status ?? StatusCodes.Status500InternalServerError);
+
+        httpContext.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
+
+        return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+        {
+            HttpContext = httpContext,
+            ProblemDetails = problem,
+            Exception = exception
+        });
+    }
+
+    private static ProblemDetails CreateProblem(Exception exception)
+    {
+        switch (exception)
+        {
+            case ValidationException validation:
+                var errors = validation.Errors
+                    .GroupBy(e => e.PropertyName)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).Distinct().ToArray());
+                return new HttpValidationProblemDetails(errors)
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Validation failed"
+                };
+
+            case BadHttpRequestException badRequest:
+                return new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Bad request",
+                    Detail = badRequest.Message
+                };
+
+            case NotFoundException or ChannelNotFoundException:
+                return new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not found",
+                    Detail = exception.Message
+                };
+
+            case BotLacksRightsException:
+                return new ProblemDetails
+                {
+                    Status = StatusCodes.Status403Forbidden,
+                    Title = "The bot has no rights to publish to this channel",
+                    Detail = exception.Message
+                };
+
+            case ConflictException:
+                return new ProblemDetails
+                {
+                    Status = StatusCodes.Status409Conflict,
+                    Title = "Operation is not possible in the current state",
+                    Detail = exception.Message
+                };
+
+            case TelegramOperationException telegram:
+                return CreateTelegramProblem(telegram);
+
+            default:
+                return new ProblemDetails
+                {
+                    Status = StatusCodes.Status500InternalServerError,
+                    Title = "Internal server error"
+                };
+        }
+    }
+
+    private static ProblemDetails CreateTelegramProblem(TelegramOperationException exception)
+    {
+        var status = exception.IsTimeout ? StatusCodes.Status504GatewayTimeout
+            : exception.ErrorCode == 400 ? StatusCodes.Status422UnprocessableEntity
+            : StatusCodes.Status502BadGateway;
+
+        var problem = new ProblemDetails
+        {
+            Status = status,
+            Title = "Telegram did not complete the request",
+            Detail = exception.Message
+        };
+
+        if (exception.ErrorCode is { } code)
+        {
+            problem.Extensions["telegramErrorCode"] = code;
+        }
+
+        if (exception.RecordId is { } id)
+        {
+            problem.Extensions["publicationId"] = id;
+        }
+
+        return problem;
+    }
+
+    private void Log(Exception exception, int status)
+    {
+        if (status >= StatusCodes.Status500InternalServerError && exception is not TelegramOperationException)
+        {
+            logger.LogError(exception, "Unhandled exception");
+        }
+        else
+        {
+            logger.LogWarning("Request failed with {StatusCode}: {ExceptionType}", status, exception.GetType().Name);
+        }
+    }
+}

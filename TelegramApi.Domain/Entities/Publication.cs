@@ -1,21 +1,14 @@
-﻿namespace TelegramApi.Domain;
+namespace TelegramApi.Domain;
 
-public class Publication
+/// <summary>Обычная публикация: текст, текст с кнопками или медиа с подписью.</summary>
+public class Publication : PublishableEntity
 {
-    public Guid Id { get; set; }
-    public int TgMsgId { get; set; }
-    public long TgChatId { get; set; }
-    public string TgAlias { get; set; }
-    public PublicationStatus Status { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? SentAt { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public string Text { get; set; }
-    public int? ErrorCode { get; set; }
-    public string? ErrorText { get; set; }
-    public DateTime? ErrorDate { get; set; }
-    public List<Button> Buttons { get; set; } = new();
-    public List<MediaFile> MediaFiles { get; set; } = new();
-    public PublicationType PublicationType { get; set; }
+    /// <summary>Текст сообщения или подпись к медиа. У медиа-публикации может отсутствовать.</summary>
+    public string? Text { get; set; }
+
+    public TextFormat Format { get; set; } = TextFormat.Plain;
+
+    public List<Button> Buttons { get; set; } = [];
+
+    public List<MediaFile> MediaFiles { get; set; } = [];
 }

@@ -1,6 +1,39 @@
+## Секреты и локальные настройки
 .env
-**/appsettings.Development.json
-bin/
-obj/
+.env.*
+**/appsettings.Local.json
+**/appsettings.*.local.json
+secrets.json
+
+## Сборка
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+artifacts/
+*.nupkg
+*.snupkg
+
+## IDE
 .vs/
+.vscode/
+.idea/
 *.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+## Тесты и покрытие
+TestResults/
+[Tt]est[Rr]esult*/
+coverage*.xml
+*.coverage
+
+## Логи и временные файлы
+*.log
+*.tmp
+logs/
+
+## ОС
+.DS_Store
+Thumbs.db

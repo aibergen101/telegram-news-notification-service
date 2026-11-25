@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Токен бота и строка подключения для локальной разработки: dotnet user-secrets -->
+    <UserSecretsId>27a9a10e-cdb1-47fe-971f-08249f3db6c9</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
