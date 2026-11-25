@@ -19,6 +19,9 @@ public sealed class FakeTelegramService : ITelegramService
     /// <summary>Исключение для проверки канала перед публикацией.</summary>
     public Exception? FailEnsureCanPublish { get; set; }
 
+    /// <summary>Кнопки, переданные в последнюю отправку файлов.</summary>
+    public IReadOnlyList<ButtonDto>? LastMediaButtons { get; private set; }
+
     public int CountOf(string operation) => Calls.Count(c => c == operation);
 
     public void Reset()
@@ -26,6 +29,7 @@ public sealed class FakeTelegramService : ITelegramService
         Calls.Clear();
         FailNextSend = null;
         FailEnsureCanPublish = null;
+        LastMediaButtons = null;
     }
 
     public Task EnsureCanPublishAsync(string channelAlias, CancellationToken ct)
@@ -50,6 +54,7 @@ public sealed class FakeTelegramService : ITelegramService
         CancellationToken ct)
     {
         Record(nameof(SendMediaAsync));
+        LastMediaButtons = buttons;
 
         var results = new List<MediaSendResult>();
         foreach (var file in files)

@@ -131,8 +131,7 @@ public sealed class PublicationEndpointsTests(ApiFactory factory) : ApiTestBase(
     public async Task CreateMedia_SinglePhotoWithButton_StoresFileIdAndButton()
     {
         using var form = MediaForm(NewChannel(), files: 1, caption: "Photo");
-        form.Add(new StringContent("Open"), "Buttons[0].Text");
-        form.Add(new StringContent("https://example.com"), "Buttons[0].Url");
+        form.Add(new StringContent("""[{"text":"Open","url":"https://example.com"}]"""), "buttons");
 
         var response = await Client.PostAsync("/api/media-publications", form);
 
@@ -162,12 +161,47 @@ public sealed class PublicationEndpointsTests(ApiFactory factory) : ApiTestBase(
     public async Task CreateMedia_AlbumWithButtons_Returns400()
     {
         using var form = MediaForm(NewChannel(), files: 2);
-        form.Add(new StringContent("Open"), "Buttons[0].Text");
-        form.Add(new StringContent("https://example.com"), "Buttons[0].Url");
+        form.Add(new StringContent("""[{"text":"Open","url":"https://example.com"}]"""), "buttons");
 
         var response = await Client.PostAsync("/api/media-publications", form);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Empty(Telegram.Calls);
+    }
+
+    [Fact]
+    public async Task CreateMedia_DocumentWithButton_PassesButtonToTelegram()
+    {
+        // Сценарий из ручной проверки в Scalar: один xlsx и кнопка в поле buttons.
+        using var form = MediaForm(
+            NewChannel(),
+            files: 1,
+            contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            caption: "Grades Announcement");
+        form.Add(new StringContent("""[{"text":"is it good?","url":"https://example.com/grades"}]"""), "buttons");
+
+        var response = await Client.PostAsync("/api/media-publications", form);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await ReadAsync<PublicationResponse>(response);
+        Assert.Equal("is it good?", Assert.Single(created.Buttons).Text);
+        Assert.Equal(MediaType.Document, Assert.Single(created.MediaFiles).MediaType);
+        Assert.Equal("is it good?", Assert.Single(Telegram.LastMediaButtons!).Text);
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("""{"text":"Open"}""")]
+    [InlineData("[null]")]
+    public async Task CreateMedia_MalformedButtonsJson_Returns400(string buttons)
+    {
+        using var form = MediaForm(NewChannel(), files: 1);
+        form.Add(new StringContent(buttons), "buttons");
+
+        var response = await Client.PostAsync("/api/media-publications", form);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("Buttons", (await ReadAsync<ValidationProblemDetails>(response)).Errors.Keys);
         Assert.Empty(Telegram.Calls);
     }
 

@@ -1,3 +1,6 @@
+using System.Text.Json;
+using FluentValidation;
+using FluentValidation.Results;
 using TelegramApi.Application.Common;
 using TelegramApi.Application.Polls.CreatePoll;
 using TelegramApi.Application.Publications.CreateMedia;
@@ -36,7 +39,7 @@ public static class ApiMappings
         (request.Files ?? new FormFileCollection())
             .Select(f => new MediaFileDto(f.FileName, f.OpenReadStream(), f.ContentType, f.Length))
             .ToList(),
-        ToDtos(request.Buttons),
+        ToDtos(ParseFormButtons(request.Buttons)),
         idempotencyKey);
 
     public static EditPublicationCommand ToCommand(this EditPublicationRequest request, Guid id) => new(
@@ -44,6 +47,37 @@ public static class ApiMappings
         request.Text,
         request.Format,
         ToDtos(request.Buttons));
+
+    /// <summary>Разбирает поле Buttons multipart-формы (JSON-массив). Ошибка разбора — 400 с понятным текстом.</summary>
+    private static List<ButtonRequest>? ParseFormButtons(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            var buttons = JsonSerializer.Deserialize<List<ButtonRequest?>>(json, FormJson);
+            if (buttons is null || buttons.Any(b => b is null))
+            {
+                throw new JsonException();
+            }
+
+            return buttons.Select(b => b!).ToList();
+        }
+        catch (JsonException)
+        {
+            throw new ValidationException(
+            [
+                new ValidationFailure(
+                    nameof(CreateMediaPublicationRequest.Buttons),
+                    "Buttons must be a JSON array like [{\"text\":\"Open\",\"url\":\"https://example.com\"}].")
+            ]);
+        }
+    }
+
+    private static readonly JsonSerializerOptions FormJson = new(JsonSerializerDefaults.Web);
 
     private static List<ButtonDto> ToDtos(List<ButtonRequest>? buttons) =>
         (buttons ?? []).Select(b => new ButtonDto(b.Text, b.Url)).ToList();
