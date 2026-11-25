@@ -7,11 +7,6 @@ using TelegramApi.Domain;
 
 namespace TelegramApi.Application.Publications.EditPublication;
 
-/// <summary>
-/// Редактирование отправленной публикации (ТЗ 15.1): текст или подпись, формат и кнопки заменяются целиком.
-/// Файлы не меняются. Опросы Telegram редактировать не позволяет.
-/// </summary>
-/// <param name="Text">Новый текст; для публикации с файлами это подпись, её можно убрать (null).</param>
 public record EditPublicationCommand(
     Guid Id,
     string? Text,
@@ -60,14 +55,12 @@ public class EditPublicationHandler
                 $"Publication {publication.Id} has status {publication.Status} and cannot be edited.");
         }
 
-        // Правила, зависящие от вида уже отправленного сообщения.
         ValidateAgainstMessageKind(publication, command);
 
         var messageText = MessageText.Compose(command.Text, command.Link, command.Format);
 
         if (publication.HasMedia)
         {
-            // Подпись альбома хранится в первом сообщении, оно же TgMsgId публикации.
             await telegram.EditCaptionAsync(
                 publication.TgChatId, publication.TgMsgId, messageText, command.Format, command.Buttons, ct);
         }

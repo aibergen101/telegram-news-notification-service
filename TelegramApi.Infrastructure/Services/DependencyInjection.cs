@@ -13,7 +13,6 @@ public static class DependencyInjection
 
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Пустая строка подключения допустима для инструментов EF (dotnet ef ... --connection).
         var connectionString = configuration.GetConnectionString(ConnectionStringName);
         services.AddDbContext<TelegramApiDbContext>(options =>
         {

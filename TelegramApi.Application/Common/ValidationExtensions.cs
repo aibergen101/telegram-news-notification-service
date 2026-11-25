@@ -9,7 +9,6 @@ public static class ValidationExtensions
             .Matches(ChannelAlias.Pattern)
             .WithMessage("Channel alias must look like @my_channel: 5–32 characters, letters, digits and underscore, starting with a letter.");
 
-    /// <summary>Ссылка из отдельного поля публикации (ТЗ 2.8): абсолютный http или https адрес.</summary>
     public static IRuleBuilderOptions<T, string?> MustBeLink<T>(this IRuleBuilder<T, string?> rule) =>
         rule.MaximumLength(TelegramLimits.MaxLinkLength)
             .Must(link => link is null || IsWebUrl(link))
@@ -20,7 +19,6 @@ public static class ValidationExtensions
         && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
 }
 
-/// <summary>Правила одной кнопки: текст, и ссылка только по https (ТЗ 2.10, 9.7).</summary>
 public class ButtonDtoValidator : AbstractValidator<ButtonDto>
 {
     public ButtonDtoValidator()

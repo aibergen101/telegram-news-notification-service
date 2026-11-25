@@ -19,7 +19,6 @@ public class TelegramApiDbContext(DbContextOptions<TelegramApiDbContext> options
         ConfigureIdempotency(modelBuilder.Entity<Poll>());
     }
 
-    /// <summary>ТЗ 15.3: ключ хранится вместе с записью и уникален на уровне БД.</summary>
     private static void ConfigureIdempotency<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T> entity)
         where T : PublishableEntity
     {

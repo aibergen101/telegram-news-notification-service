@@ -4,8 +4,6 @@ namespace TelegramApi.Application.Common;
 
 public static class Mappings
 {
-    // Идентификаторы не задаются: EF Core генерирует их при добавлении. Заданный Guid у новой дочерней сущности
-    // в уже отслеживаемой публикации EF принял бы за существующую строку (UPDATE вместо INSERT).
     public static List<Button> ToEntities(this IReadOnlyList<ButtonDto> buttons) =>
         buttons
             .Select((b, index) => new Button { Text = b.Text, Url = b.Url, Order = index })

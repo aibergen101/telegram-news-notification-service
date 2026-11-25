@@ -6,25 +6,18 @@ using TelegramApi.Domain;
 
 namespace TelegramApi.Application.Common;
 
-/// <summary>Результат команды создания: новая запись или повтор уже выполненного запроса с тем же ключом.</summary>
 public record CreateResult<T>(T Value, bool Replayed);
 
-/// <summary>
-/// Идемпотентность создания (ТЗ 15.3). Ключ приходит в заголовке Idempotency-Key и хранится в записи.
-/// Эквивалентность запросов определяется по SHA-256 нормализованного содержимого команды.
-/// </summary>
 public static class Idempotency
 {
     public const string HeaderName = "Idempotency-Key";
 
-    /// <summary>Хэш содержимого: тот же ключ с другим хэшем означает другой запрос (409).</summary>
     public static string ComputeHash(object normalizedRequest)
     {
         var bytes = JsonSerializer.SerializeToUtf8Bytes(normalizedRequest);
         return Convert.ToHexStringLower(SHA256.HashData(bytes));
     }
 
-    /// <summary>Хэш содержимого файла. Поток возвращается в начало, чтобы потом отправить его в Telegram.</summary>
     public static async Task<string> HashStreamAsync(Stream stream, CancellationToken ct)
     {
         if (!stream.CanSeek)
@@ -38,10 +31,6 @@ public static class Idempotency
         return Convert.ToHexStringLower(hash);
     }
 
-    /// <summary>
-    /// Ищет запись с этим ключом в публикациях и опросах.
-    /// Тот же запрос возвращает найденную запись, другой запрос с тем же ключом — 409.
-    /// </summary>
     public static async Task<T?> FindReplayAsync<T>(
         IApplicationDbContext db,
         string key,
@@ -72,10 +61,6 @@ public static class Idempotency
         return match;
     }
 
-    /// <summary>
-    /// Сохраняет новую запись. Если параллельный запрос с тем же ключом успел раньше,
-    /// уникальный индекс не даст создать дубль, и возвращается его запись (или 409).
-    /// </summary>
     public static async Task<T?> SaveNewAsync<T>(
         T entity,
         IApplicationDbContext db,

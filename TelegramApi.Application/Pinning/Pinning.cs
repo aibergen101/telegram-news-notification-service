@@ -5,11 +5,8 @@ using TelegramApi.Domain;
 
 namespace TelegramApi.Application.Pinning;
 
-/// <summary>Закрепить сообщение публикации или опроса в канале (ТЗ 15.2).</summary>
-/// <param name="DisableNotification">Закрепить без уведомления подписчиков.</param>
 public record PinMessageCommand(PublicationKind Kind, Guid Id, bool DisableNotification = false);
 
-/// <summary>Открепить сообщение публикации или опроса (ТЗ 15.2).</summary>
 public record UnpinMessageCommand(PublicationKind Kind, Guid Id);
 
 public class PinMessageHandler
@@ -60,7 +57,6 @@ public class UnpinMessageHandler
 
 internal static class PinTarget
 {
-    /// <summary>Закрепление имеет смысл только для сообщения, которое есть в Telegram (статус Sent).</summary>
     public static async Task<PublishableEntity> LoadSentAsync(
         IApplicationDbContext db,
         PublicationKind kind,

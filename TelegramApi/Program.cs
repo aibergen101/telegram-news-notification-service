@@ -12,7 +12,6 @@ using TelegramApi.Infrastructure.HealthChecks;
 using Wolverine;
 using Wolverine.FluentValidation;
 
-
 const long MaxRequestBodyBytes = 150L * 1024 * 1024;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,7 +30,6 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddValidatorsFromAssemblyContaining<CreateTextPublicationValidator>(ServiceLifetime.Singleton);
 
-// ТЗ 11.1: основной health check проверяет приложение и PostgreSQL; Telegram проверяется отдельно (GET /api/bot/check).
 builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("postgresql");
 

@@ -8,7 +8,6 @@ public class Button
 
     public string Url { get; set; } = string.Empty;
 
-    /// <summary>Порядок кнопки в списке клиента.</summary>
     public int Order { get; set; }
 
     public Guid PublicationId { get; set; }

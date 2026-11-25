@@ -25,7 +25,8 @@ public static class PublicationEndpoints
 {
     public static IEndpointRouteBuilder MapPublicationEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/publications").WithTags("Publications");
+        var group = app.MapGroup("/api/publications").WithTags("Publications")
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapPost("/", CreateTextAsync)
             .WithName("CreateTextPublication")
@@ -39,6 +40,7 @@ public static class PublicationEndpoints
             .ProducesTelegramProblems();
 
         app.MapPost("/api/media-publications", CreateMediaAsync)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
             .WithTags("Publications")
             .WithName("CreateMediaPublication")
             .WithSummary("Создать публикацию с файлами")
@@ -54,6 +56,7 @@ public static class PublicationEndpoints
         group.MapGet("/{id:guid}", GetAsync)
             .WithName("GetPublication")
             .WithSummary("Получить публикацию по идентификатору")
+            .WithDescription("Возвращает сохранённые данные публикации в любом статусе, включая Failed и Deleted.")
             .Produces<PublicationResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
@@ -81,7 +84,7 @@ public static class PublicationEndpoints
 
     private static async Task<IResult> CreateTextAsync(
         CreateTextPublicationRequest request,
-        [FromHeader(Name = Idempotency.HeaderName)] string? idempotencyKey,
+        [FromHeader(Name = Idempotency.HeaderName), Description("Необязательный ключ идемпотентности, до 255 видимых ASCII-символов.")] string? idempotencyKey,
         IMessageBus bus,
         CancellationToken ct)
     {
@@ -91,7 +94,7 @@ public static class PublicationEndpoints
 
     private static async Task<IResult> CreateMediaAsync(
         [FromForm] CreateMediaPublicationRequest request,
-        [FromHeader(Name = Idempotency.HeaderName)] string? idempotencyKey,
+        [FromHeader(Name = Idempotency.HeaderName), Description("Необязательный ключ идемпотентности, до 255 видимых ASCII-символов.")] string? idempotencyKey,
         IMessageBus bus,
         CancellationToken ct)
     {
@@ -99,14 +102,14 @@ public static class PublicationEndpoints
         return CreatedOrReplayed($"/api/publications/{result.Value.Id}", result, result.Value.ToResponse());
     }
 
-    private static async Task<IResult> GetAsync(Guid id, IMessageBus bus, CancellationToken ct)
+    private static async Task<IResult> GetAsync([Description("Внутренний идентификатор записи (Guid).")] Guid id, IMessageBus bus, CancellationToken ct)
     {
         var result = await bus.InvokeAsync<PublicationDetails>(new GetPublicationQuery(id), ct);
         return TypedResults.Ok(result.ToResponse());
     }
 
     private static async Task<IResult> EditAsync(
-        Guid id,
+        [Description("Внутренний идентификатор записи (Guid).")] Guid id,
         EditPublicationRequest request,
         IMessageBus bus,
         CancellationToken ct)
@@ -115,13 +118,12 @@ public static class PublicationEndpoints
         return TypedResults.Ok(result.ToResponse());
     }
 
-    private static async Task<IResult> DeleteAsync(Guid id, IMessageBus bus, CancellationToken ct)
+    private static async Task<IResult> DeleteAsync([Description("Внутренний идентификатор записи (Guid).")] Guid id, IMessageBus bus, CancellationToken ct)
     {
         await bus.InvokeAsync(new DeletePublicationCommand(id), ct);
         return TypedResults.NoContent();
     }
 
-    /// <summary>Новая запись — 201 Created; повтор запроса с тем же Idempotency-Key — 200 OK с той же записью.</summary>
     internal static IResult CreatedOrReplayed<TDetails, TResponse>(
         string location,
         CreateResult<TDetails> result,
@@ -135,7 +137,8 @@ public static class PollEndpoints
 {
     public static IEndpointRouteBuilder MapPollEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/polls").WithTags("Polls");
+        var group = app.MapGroup("/api/polls").WithTags("Polls")
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapPost("/", CreateAsync)
             .WithName("CreatePoll")
@@ -151,6 +154,7 @@ public static class PollEndpoints
         group.MapGet("/{id:guid}", GetAsync)
             .WithName("GetPoll")
             .WithSummary("Получить опрос по идентификатору")
+            .WithDescription("Возвращает сохранённые данные опроса в любом статусе, включая Failed и Deleted.")
             .Produces<PollResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
@@ -176,7 +180,7 @@ public static class PollEndpoints
 
     private static async Task<IResult> CreateAsync(
         CreatePollRequest request,
-        [FromHeader(Name = Idempotency.HeaderName)] string? idempotencyKey,
+        [FromHeader(Name = Idempotency.HeaderName), Description("Необязательный ключ идемпотентности, до 255 видимых ASCII-символов.")] string? idempotencyKey,
         IMessageBus bus,
         CancellationToken ct)
     {
@@ -184,26 +188,25 @@ public static class PollEndpoints
         return PublicationEndpoints.CreatedOrReplayed($"/api/polls/{result.Value.Id}", result, result.Value.ToResponse());
     }
 
-    private static async Task<IResult> GetAsync(Guid id, IMessageBus bus, CancellationToken ct)
+    private static async Task<IResult> GetAsync([Description("Внутренний идентификатор записи (Guid).")] Guid id, IMessageBus bus, CancellationToken ct)
     {
         var result = await bus.InvokeAsync<PollDetails>(new GetPollQuery(id), ct);
         return TypedResults.Ok(result.ToResponse());
     }
 
-    private static async Task<IResult> CloseAsync(Guid id, IMessageBus bus, CancellationToken ct)
+    private static async Task<IResult> CloseAsync([Description("Внутренний идентификатор записи (Guid).")] Guid id, IMessageBus bus, CancellationToken ct)
     {
         await bus.InvokeAsync(new ClosePollCommand(id), ct);
         return TypedResults.NoContent();
     }
 
-    private static async Task<IResult> DeleteAsync(Guid id, IMessageBus bus, CancellationToken ct)
+    private static async Task<IResult> DeleteAsync([Description("Внутренний идентификатор записи (Guid).")] Guid id, IMessageBus bus, CancellationToken ct)
     {
         await bus.InvokeAsync(new DeletePollCommand(id), ct);
         return TypedResults.NoContent();
     }
 }
 
-/// <summary>Закрепление и открепление: одинаковый ресурс /pin у публикаций и опросов.</summary>
 internal static class PinEndpoints
 {
     public static void MapPinEndpoints(this RouteGroupBuilder group, PublicationKind kind, string namePrefix)
@@ -211,7 +214,7 @@ internal static class PinEndpoints
         var what = kind == PublicationKind.Poll ? "опрос" : "публикацию";
 
         group.MapPut("/{id:guid}/pin", async (
-                Guid id,
+                [Description("Внутренний идентификатор записи (Guid).")] Guid id,
                 IMessageBus bus,
                 CancellationToken ct,
                 [Description("Закрепить без уведомления подписчиков.")] bool disableNotification = false) =>
@@ -227,7 +230,7 @@ internal static class PinEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesTelegramProblems();
 
-        group.MapDelete("/{id:guid}/pin", async (Guid id, IMessageBus bus, CancellationToken ct) =>
+        group.MapDelete("/{id:guid}/pin", async ([Description("Внутренний идентификатор записи (Guid).")] Guid id, IMessageBus bus, CancellationToken ct) =>
             {
                 await bus.InvokeAsync(new UnpinMessageCommand(kind, id), ct);
                 return TypedResults.NoContent();
@@ -253,6 +256,7 @@ public static class HistoryEndpoints
     public static IEndpointRouteBuilder MapHistoryEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapGet("/api/publications-history", GetAsync)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
             .WithTags("History")
             .WithName("GetPublicationsHistory")
             .WithSummary("История публикаций и опросов")
@@ -266,12 +270,12 @@ public static class HistoryEndpoints
     private static async Task<IResult> GetAsync(
         IMessageBus bus,
         CancellationToken ct,
-        int page = 1,
-        int pageSize = HistoryLimits.DefaultPageSize,
-        PublicationStatus? status = null,
-        string? channelAlias = null,
-        [FromQuery(Name = "from")] DateTimeOffset? createdFrom = null,
-        [FromQuery(Name = "to")] DateTimeOffset? createdTo = null)
+        [Description("Номер страницы, с 1.")] int page = 1,
+        [Description("Размер страницы, от 1 до 100. По умолчанию 20.")] int pageSize = HistoryLimits.DefaultPageSize,
+        [Description("Фильтр по статусу: Sent, Failed или Deleted.")] PublicationStatus? status = null,
+        [Description("Фильтр по каналу, например @my_channel.")] string? channelAlias = null,
+        [FromQuery(Name = "from"), Description("Начало периода по дате создания, включительно (ISO 8601).")] DateTimeOffset? createdFrom = null,
+        [FromQuery(Name = "to"), Description("Конец периода по дате создания, включительно (ISO 8601).")] DateTimeOffset? createdTo = null)
     {
         var query = new GetHistoryQuery(
             page,
@@ -290,11 +294,13 @@ public static class TelegramEndpoints
 {
     public static IEndpointRouteBuilder MapTelegramEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api").WithTags("Telegram");
+        var group = app.MapGroup("/api").WithTags("Telegram")
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/bot/check", CheckBotAsync)
             .WithName("CheckBot")
             .WithSummary("Проверить токен и доступность бота")
+            .WithDescription("Обращается к Telegram от имени настроенного бота. 200 — Telegram доступен и токен действителен; 502 — Telegram отклонил запрос или недоступен; 504 — Telegram не ответил вовремя.")
             .Produces<BotCheckResponse>()
             .ProducesProblem(StatusCodes.Status502BadGateway)
             .ProducesProblem(StatusCodes.Status504GatewayTimeout);
@@ -316,7 +322,7 @@ public static class TelegramEndpoints
         return TypedResults.Ok(new BotCheckResponse("ok"));
     }
 
-    private static async Task<IResult> GetChannelAsync(string alias, IMessageBus bus, CancellationToken ct)
+    private static async Task<IResult> GetChannelAsync([Description("Alias канала вместе с @, например @my_channel.")] string alias, IMessageBus bus, CancellationToken ct)
     {
         var info = await bus.InvokeAsync<ChannelInfo>(new GetChannelInfoQuery(alias), ct);
         return TypedResults.Ok(info.ToResponse());
@@ -325,7 +331,6 @@ public static class TelegramEndpoints
 
 internal static class EndpointMetadataExtensions
 {
-    /// <summary>Ошибки, которыми отвечает любой эндпоинт, обращающийся к Telegram.</summary>
     public static RouteHandlerBuilder ProducesTelegramProblems(this RouteHandlerBuilder builder) =>
         builder
             .ProducesProblem(StatusCodes.Status403Forbidden)

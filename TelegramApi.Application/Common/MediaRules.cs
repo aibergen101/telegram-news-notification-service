@@ -2,7 +2,6 @@ using TelegramApi.Domain;
 
 namespace TelegramApi.Application.Common;
 
-/// <summary>Какие файлы принимаются и как они отправляются в Telegram.</summary>
 public static class MediaRules
 {
     private static readonly HashSet<string> PhotoTypes = new(StringComparer.OrdinalIgnoreCase)

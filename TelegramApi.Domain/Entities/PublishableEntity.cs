@@ -1,9 +1,5 @@
 namespace TelegramApi.Domain;
 
-/// <summary>
-/// Общая часть публикации и опроса: данные Telegram, статус, даты и последняя ошибка.
-/// Сам по себе в БД не отображается: поля попадают в таблицы наследников.
-/// </summary>
 public abstract class PublishableEntity
 {
     public const int MaxErrorTextLength = 1000;
@@ -18,10 +14,6 @@ public abstract class PublishableEntity
 
     public int TgMsgId { get; set; }
 
-    /// <summary>
-    /// Пока Telegram не подтвердил отправку, запись считается Failed
-    /// (отдельного статуса «в процессе» в ТЗ нет).
-    /// </summary>
     public PublicationStatus Status { get; set; } = PublicationStatus.Failed;
 
     public DateTime CreatedAt { get; set; }
@@ -38,15 +30,12 @@ public abstract class PublishableEntity
 
     public DateTime? ErrorDate { get; set; }
 
-    /// <summary>Сообщение закреплено в канале (для альбома закрепляется первое сообщение).</summary>
     public bool IsPinned { get; set; }
 
     public DateTime? PinnedAt { get; set; }
 
-    /// <summary>Ключ идемпотентности, переданный клиентом при создании. Уникален в пределах таблицы.</summary>
     public string? IdempotencyKey { get; set; }
 
-    /// <summary>SHA-256 содержимого запроса создания: по нему повтор с тем же ключом отличается от другого запроса.</summary>
     public string? IdempotencyHash { get; set; }
 
     public void MarkSent(long chatId, int messageId, DateTime now)

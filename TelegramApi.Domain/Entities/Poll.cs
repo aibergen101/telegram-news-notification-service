@@ -1,6 +1,5 @@
 namespace TelegramApi.Domain;
 
-/// <summary>Опрос в канале.</summary>
 public class Poll : PublishableEntity
 {
     public string Question { get; set; } = string.Empty;
@@ -9,7 +8,6 @@ public class Poll : PublishableEntity
 
     public bool IsAnonymous { get; set; } = true;
 
-    /// <summary>Продолжительность опроса в секундах; null, если опрос не ограничен по времени.</summary>
     public int? Duration { get; set; }
 
     public bool IsClosed { get; set; }

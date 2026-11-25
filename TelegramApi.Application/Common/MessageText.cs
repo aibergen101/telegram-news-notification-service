@@ -4,15 +4,10 @@ using TelegramApi.Domain;
 
 namespace TelegramApi.Application.Common;
 
-/// <summary>
-/// Текст сообщения для Telegram: текст клиента и ссылка из отдельного поля (ТЗ 2.8).
-/// Ссылка ставится отдельной строкой в конце и записывается в синтаксисе выбранного формата.
-/// </summary>
 public static class MessageText
 {
     private const string Separator = "\n\n";
 
-    /// <summary>Специальные символы MarkdownV2, которые экранируются вне ссылок.</summary>
     private const string MarkdownV2Special = "_*[]()~`>#+-=|{}.!\\";
 
     public static string? Compose(string? text, string? link, TextFormat format)
@@ -32,10 +27,6 @@ public static class MessageText
         return string.IsNullOrEmpty(text) ? renderedLink : text + Separator + renderedLink;
     }
 
-    /// <summary>
-    /// Длина видимого текста сообщения вместе со ссылкой. Разметка текста клиента считается как есть,
-    /// поэтому оценка не меньше той, что посчитает Telegram.
-    /// </summary>
     public static int Length(string? text, string? link)
     {
         var textLength = text?.Length ?? 0;

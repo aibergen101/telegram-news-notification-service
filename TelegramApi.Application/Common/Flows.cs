@@ -3,10 +3,6 @@ using TelegramApi.Domain;
 
 namespace TelegramApi.Application.Common;
 
-/// <summary>
-/// Общий сценарий публикации: запись уже сохранена со статусом Failed, затем выполняется отправка.
-/// Успех фиксируется в БД, ошибка Telegram сохраняется в записи и пробрасывается наверх.
-/// </summary>
 public static class PublishFlow
 {
     public static async Task ExecuteAsync(
@@ -48,10 +44,6 @@ public static class PublishFlow
     }
 }
 
-/// <summary>
-/// Общий сценарий удаления для публикаций и опросов.
-/// Запись получает статус Deleted только после успешного удаления сообщений в Telegram.
-/// </summary>
 public static class DeletionFlow
 {
     public static async Task ExecuteAsync(
