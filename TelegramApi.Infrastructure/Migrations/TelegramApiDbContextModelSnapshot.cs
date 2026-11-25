@@ -28,6 +28,9 @@ namespace TelegramApi.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("PublicationId")
                         .HasColumnType("uuid");
 
@@ -59,12 +62,18 @@ namespace TelegramApi.Infrastructure.Migrations
                     b.Property<int>("MediaType")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("PublicationId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("TgFileId")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("TgMessageId")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -82,6 +91,9 @@ namespace TelegramApi.Infrastructure.Migrations
                     b.Property<bool>("AllowMultipleAnswers")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -91,11 +103,22 @@ namespace TelegramApi.Infrastructure.Migrations
                     b.Property<int?>("Duration")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ErrorCode")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ErrorDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ErrorText")
                         .HasColumnType("text");
+
+                    b.Property<string>("IdempotencyHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<bool>("IsAnonymous")
                         .HasColumnType("boolean");
@@ -103,9 +126,18 @@ namespace TelegramApi.Infrastructure.Migrations
                     b.Property<bool>("IsClosed")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PinnedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Question")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -120,7 +152,14 @@ namespace TelegramApi.Infrastructure.Migrations
                     b.Property<int>("TgMsgId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
 
                     b.ToTable("Polls");
                 });
@@ -160,6 +199,9 @@ namespace TelegramApi.Infrastructure.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int?>("ErrorCode")
                         .HasColumnType("integer");
 
@@ -169,8 +211,22 @@ namespace TelegramApi.Infrastructure.Migrations
                     b.Property<string>("ErrorText")
                         .HasColumnType("text");
 
-                    b.Property<int>("PublicationType")
+                    b.Property<int>("Format")
                         .HasColumnType("integer");
+
+                    b.Property<string>("IdempotencyHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PinnedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("timestamp with time zone");
@@ -179,7 +235,6 @@ namespace TelegramApi.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("Text")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("TgAlias")
@@ -196,6 +251,10 @@ namespace TelegramApi.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
 
                     b.ToTable("Publications");
                 });
