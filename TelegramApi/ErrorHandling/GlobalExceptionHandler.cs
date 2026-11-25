@@ -96,24 +96,12 @@ public sealed class GlobalExceptionHandler(
             : exception.ErrorCode == 400 ? StatusCodes.Status422UnprocessableEntity
             : StatusCodes.Status502BadGateway;
 
-        var problem = new ProblemDetails
+        return new ProblemDetails
         {
             Status = status,
             Title = "Telegram did not complete the request",
             Detail = exception.Message
         };
-
-        if (exception.ErrorCode is { } code)
-        {
-            problem.Extensions["telegramErrorCode"] = code;
-        }
-
-        if (exception.RecordId is { } id)
-        {
-            problem.Extensions["publicationId"] = id;
-        }
-
-        return problem;
     }
 
     private void Log(Exception exception, int status)

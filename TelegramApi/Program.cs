@@ -31,9 +31,9 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddValidatorsFromAssemblyContaining<CreateTextPublicationValidator>(ServiceLifetime.Singleton);
 
+// ТЗ 11.1: основной health check проверяет приложение и PostgreSQL; Telegram проверяется отдельно (GET /api/bot/check).
 builder.Services.AddHealthChecks()
-    .AddCheck<DatabaseHealthCheck>("postgresql")
-    .AddCheck<TelegramHealthCheck>("telegram", tags: [TelegramHealthCheck.Tag]);
+    .AddCheck<DatabaseHealthCheck>("postgresql");
 
 builder.Host.UseWolverine(options =>
 {
@@ -43,9 +43,6 @@ builder.Host.UseWolverine(options =>
 });
 
 var app = builder.Build();
-
-// После Build: инструменты EF останавливают приложение раньше и передают строку подключения сами.
-DependencyInjection.EnsureConnectionStringConfigured(app.Configuration);
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
@@ -60,15 +57,7 @@ app.UseAntiforgery();
 app.MapOpenApi();
 app.MapScalarApiReference();
 
-// ТЗ 11.2: доступность Telegram не влияет на основной health check.
-app.MapHealthChecks("/health", new HealthCheckOptions
-{
-    Predicate = check => !check.Tags.Contains(TelegramHealthCheck.Tag)
-});
-app.MapHealthChecks("/health/telegram", new HealthCheckOptions
-{
-    Predicate = check => check.Tags.Contains(TelegramHealthCheck.Tag)
-});
+app.MapHealthChecks("/health");
 
 app.MapPublicationEndpoints();
 app.MapPollEndpoints();

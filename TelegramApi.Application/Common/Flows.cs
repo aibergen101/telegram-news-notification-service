@@ -22,7 +22,6 @@ public static class PublishFlow
         catch (TelegramOperationException ex)
         {
             entity.MarkFailed(ex.ErrorCode, ex.Message, DateTime.UtcNow);
-            ex.RecordId = entity.Id;
             await db.SaveChangesAsync(CancellationToken.None);
             logger.LogWarning(
                 "Publication {PublicationId} to {Channel} failed. Telegram error code: {ErrorCode}",

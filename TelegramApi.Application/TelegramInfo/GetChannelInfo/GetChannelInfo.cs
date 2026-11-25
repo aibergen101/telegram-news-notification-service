@@ -16,5 +16,5 @@ public class GetChannelInfoValidator : AbstractValidator<GetChannelInfoQuery>
 public class GetChannelInfoHandler
 {
     public static Task<ChannelInfo> Handle(GetChannelInfoQuery query, ITelegramService telegram, CancellationToken ct) =>
-        telegram.GetChannelInfoAsync(ChannelAlias.Normalize(query.Alias), ct);
+        telegram.GetChannelInfoAsync(query.Alias, ct);
 }

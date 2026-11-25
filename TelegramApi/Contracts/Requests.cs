@@ -10,7 +10,7 @@ public record ButtonRequest(
 
 [Description("Запрос на создание текстовой публикации.")]
 public record CreateTextPublicationRequest(
-    [property: Description("Канал: @username (с @ или без).")] string ChannelAlias,
+    [property: Description("Канал: @username.")] string ChannelAlias,
     [property: Description("Текст сообщения. Обязателен, если не задана ссылка Link. Вместе со ссылкой до 4096 символов.")] string? Text,
     [property: Description("Форматирование текста: Plain, Html или MarkdownV2.")] TextFormat Format = TextFormat.Plain,
     [property: Description("Кнопки со ссылками, до 100 штук.")] List<ButtonRequest>? Buttons = null,
@@ -29,7 +29,7 @@ public record PollOptionRequest(
 
 [Description("Запрос на создание опроса.")]
 public record CreatePollRequest(
-    [property: Description("Канал: @username (с @ или без).")] string ChannelAlias,
+    [property: Description("Канал: @username.")] string ChannelAlias,
     [property: Description("Вопрос, 1–300 символов.")] string Question,
     [property: Description("От 2 до 10 вариантов ответа.")] List<PollOptionRequest> Options,
     [property: Description("Разрешить выбор нескольких ответов.")] bool AllowMultipleAnswers = false,
@@ -39,7 +39,7 @@ public record CreatePollRequest(
 [Description("Форма для публикации с файлами (multipart/form-data).")]
 public class CreateMediaPublicationRequest
 {
-    [Description("Канал: @username (с @ или без).")]
+    [Description("Канал: @username.")]
     public string ChannelAlias { get; set; } = string.Empty;
 
     [Description("Подпись к файлам, до 1024 символов. Необязательно.")]

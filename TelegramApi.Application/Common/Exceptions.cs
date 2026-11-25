@@ -30,7 +30,4 @@ public sealed class TelegramOperationException : Exception
     public int? ErrorCode { get; }
 
     public bool IsTimeout { get; }
-
-    /// <summary>Идентификатор записи, которая осталась в статусе Failed из-за этой ошибки.</summary>
-    public Guid? RecordId { get; set; }
 }
