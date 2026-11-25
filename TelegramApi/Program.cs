@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using FluentValidation;
 using JasperFx.CodeGeneration.Model;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Features;
 using Scalar.AspNetCore;
 using TelegramApi.Application.Publications.CreateText;
@@ -31,7 +32,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddValidatorsFromAssemblyContaining<CreateTextPublicationValidator>(ServiceLifetime.Singleton);
 
 builder.Services.AddHealthChecks()
-    .AddCheck<DatabaseHealthCheck>("postgresql");
+    .AddCheck<DatabaseHealthCheck>("postgresql")
+    .AddCheck<TelegramHealthCheck>("telegram", tags: [TelegramHealthCheck.Tag]);
 
 builder.Host.UseWolverine(options =>
 {
@@ -55,7 +57,15 @@ app.UseAntiforgery();
 app.MapOpenApi();
 app.MapScalarApiReference();
 
-app.MapHealthChecks("/health");
+// ТЗ 11.2: доступность Telegram не влияет на основной health check.
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    Predicate = check => !check.Tags.Contains(TelegramHealthCheck.Tag)
+});
+app.MapHealthChecks("/health/telegram", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains(TelegramHealthCheck.Tag)
+});
 
 app.MapPublicationEndpoints();
 app.MapPollEndpoints();
