@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TelegramApi.Application\TelegramApi.Application.csproj" />
     <ProjectReference Include="..\TelegramApi.Infrastructure\TelegramApi.Infrastructure.csproj" />
+    <ProjectReference Include="..\TelegramApi\TelegramApi.csproj" />
   </ItemGroup>
 
   <ItemGroup>

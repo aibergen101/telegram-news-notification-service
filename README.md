@@ -36,7 +36,7 @@ HTTP API для публикации новостей и опросов в Teleg
 dotnet test
 ```
 
-`TelegramApi.Tests` (xUnit) проверяет валидаторы и handlers публикаций, опросов и истории. Telegram подменяется через NSubstitute, база — SQLite в памяти, поэтому внешние сервисы не нужны.
+`TelegramApi.Tests` (xUnit) проверяет валидаторы и handlers публикаций, опросов и истории, а также преобразование ошибок в коды HTTP (Problem Details). Telegram подменяется через NSubstitute, база — SQLite в памяти, поэтому внешние сервисы не нужны.
 
 ## Запуск в Docker
 
