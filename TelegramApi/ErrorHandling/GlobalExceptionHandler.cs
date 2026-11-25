@@ -5,10 +5,6 @@ using TelegramApi.Application.Common;
 
 namespace TelegramApi.ErrorHandling;
 
-/// <summary>
-/// Единое место, где исключения превращаются в Problem Details (RFC 9457).
-/// Внутренние тексты неожиданных ошибок клиенту не отдаются, они только пишутся в лог.
-/// </summary>
 public sealed class GlobalExceptionHandler(
     IProblemDetailsService problemDetailsService,
     ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
@@ -18,7 +14,6 @@ public sealed class GlobalExceptionHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
-
         var problem = CreateProblem(exception);
         Log(exception, problem.Status ?? StatusCodes.Status500InternalServerError);
 

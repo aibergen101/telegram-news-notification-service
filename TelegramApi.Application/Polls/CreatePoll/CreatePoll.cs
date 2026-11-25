@@ -5,8 +5,6 @@ using TelegramApi.Domain;
 
 namespace TelegramApi.Application.Polls.CreatePoll;
 
-/// <param name="Duration">Продолжительность опроса в секундах; null, если опрос не ограничен по времени.</param>
-/// <param name="IdempotencyKey">Необязательный ключ идемпотентности из заголовка Idempotency-Key.</param>
 public record CreateQuestionPollCommand(
     string ChannelAlias,
     string Question,

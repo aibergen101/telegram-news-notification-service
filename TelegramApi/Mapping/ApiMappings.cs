@@ -51,7 +51,6 @@ public static class ApiMappings
         ToDtos(request.Buttons),
         NullIfBlank(request.Link));
 
-    /// <summary>Разбирает поле Buttons multipart-формы (JSON-массив). Ошибка разбора — 400 с понятным текстом.</summary>
     private static List<ButtonRequest>? ParseFormButtons(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))

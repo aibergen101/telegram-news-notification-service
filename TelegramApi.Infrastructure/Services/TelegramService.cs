@@ -240,10 +240,6 @@ public class TelegramService(ITelegramBotClient bot, ILogger<TelegramService> lo
         return new MediaSendResult(message.MessageId, message.Chat.Id, mediaType, fileId);
     }
 
-    /// <summary>
-    /// Все ошибки Telegram.Bot превращаются в TelegramOperationException с понятным текстом без токена и URL.
-    /// Отмена по токену пользователя пробрасывается как есть.
-    /// </summary>
     private static async Task<T> CallAsync<T>(Func<Task<T>> call, CancellationToken ct)
     {
         try
@@ -268,7 +264,6 @@ public class TelegramService(ITelegramBotClient bot, ILogger<TelegramService> lo
         }
     }
 
-    /// <summary>Telegram отвечает ошибкой, если новое содержимое совпадает со старым; для API это успех.</summary>
     private async Task IgnoreNotModifiedAsync(Func<Task> call, CancellationToken ct)
     {
         try
@@ -282,7 +277,6 @@ public class TelegramService(ITelegramBotClient bot, ILogger<TelegramService> lo
         }
     }
 
-    /// <summary>Нехватку прав администратора Telegram сообщает как 400; для клиента это 403.</summary>
     private static async Task RequireRightsAsync(Func<Task> call, string right, CancellationToken ct)
     {
         try

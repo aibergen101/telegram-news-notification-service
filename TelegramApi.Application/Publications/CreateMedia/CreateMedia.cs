@@ -5,8 +5,6 @@ using TelegramApi.Domain;
 
 namespace TelegramApi.Application.Publications.CreateMedia;
 
-/// <param name="Buttons">Кнопки со ссылками; Telegram прикрепляет их только к одиночному файлу, не к альбому.</param>
-/// <param name="IdempotencyKey">Необязательный ключ идемпотентности из заголовка Idempotency-Key.</param>
 public record CreateMediaPublicationCommand(
     string ChannelAlias,
     string? Text,
@@ -142,7 +140,6 @@ public class CreateMediaPublicationHandler
             Format = command.Format,
             CreatedAt = DateTime.UtcNow,
             Buttons = command.Buttons.ToEntities(),
-            // Файлы записываются до отправки, чтобы и у Failed-публикации было видно, что в ней было (ТЗ 4.7).
             MediaFiles = command.Files
                 .Select((file, index) => new MediaFile
                 {

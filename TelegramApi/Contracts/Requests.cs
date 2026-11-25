@@ -54,10 +54,6 @@ public class CreateMediaPublicationRequest
     [Description("Файлы: один файл или альбом из 2–10 файлов одного вида (изображения или документы).")]
     public IFormFileCollection Files { get; set; } = new FormFileCollection();
 
-    /// <summary>
-    /// В multipart-форме кнопки передаются одним полем с JSON-массивом: так их можно заполнить в Scalar
-    /// и любом HTTP-клиенте одной строкой.
-    /// </summary>
     [Description("Кнопки со ссылками: JSON-массив, например [{\"text\":\"Open\",\"url\":\"https://example.com\"}], до 100 штук. Только для одного файла: к альбому Telegram их не прикрепляет.")]
     public string? Buttons { get; set; }
 }

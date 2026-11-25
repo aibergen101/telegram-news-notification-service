@@ -1,6 +1,5 @@
 namespace TelegramApi.Application.Common;
 
-/// <summary>Ограничения Telegram Bot API, которые проверяются до обращения к Telegram.</summary>
 public static class TelegramLimits
 {
     public const int MaxMessageLength = 4096;

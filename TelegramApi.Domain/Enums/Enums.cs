@@ -6,7 +6,6 @@ public enum MediaType
     Document
 }
 
-/// <summary>Вид записи в единой истории публикаций.</summary>
 public enum PublicationKind
 {
     Post,
@@ -20,7 +19,6 @@ public enum PublicationStatus
     Deleted
 }
 
-/// <summary>Режим форматирования текста или подписи (parse_mode в Telegram).</summary>
 public enum TextFormat
 {
     Plain,

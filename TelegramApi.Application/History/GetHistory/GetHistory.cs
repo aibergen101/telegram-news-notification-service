@@ -19,7 +19,6 @@ public record GetHistoryQuery(
     DateTime? From,
     DateTime? To);
 
-/// <summary>Общая строка для объединения публикаций и опросов в одном SQL-запросе.</summary>
 internal sealed class HistoryRow
 {
     public Guid Id { get; set; }

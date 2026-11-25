@@ -5,7 +5,6 @@ using TelegramApi.Domain;
 
 namespace TelegramApi.Application.Publications.CreateText;
 
-/// <param name="IdempotencyKey">Необязательный ключ идемпотентности из заголовка Idempotency-Key.</param>
 public record CreateTextPublicationCommand(
     string ChannelAlias,
     string? Text,

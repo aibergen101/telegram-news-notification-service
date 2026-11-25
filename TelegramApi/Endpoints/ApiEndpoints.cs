@@ -121,7 +121,6 @@ public static class PublicationEndpoints
         return TypedResults.NoContent();
     }
 
-    /// <summary>Новая запись — 201 Created; повтор запроса с тем же Idempotency-Key — 200 OK с той же записью.</summary>
     internal static IResult CreatedOrReplayed<TDetails, TResponse>(
         string location,
         CreateResult<TDetails> result,
@@ -203,7 +202,6 @@ public static class PollEndpoints
     }
 }
 
-/// <summary>Закрепление и открепление: одинаковый ресурс /pin у публикаций и опросов.</summary>
 internal static class PinEndpoints
 {
     public static void MapPinEndpoints(this RouteGroupBuilder group, PublicationKind kind, string namePrefix)
@@ -325,7 +323,6 @@ public static class TelegramEndpoints
 
 internal static class EndpointMetadataExtensions
 {
-    /// <summary>Ошибки, которыми отвечает любой эндпоинт, обращающийся к Telegram.</summary>
     public static RouteHandlerBuilder ProducesTelegramProblems(this RouteHandlerBuilder builder) =>
         builder
             .ProducesProblem(StatusCodes.Status403Forbidden)
