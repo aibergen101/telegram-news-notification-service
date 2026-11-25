@@ -10,7 +10,6 @@ HTTP API для публикации новостей и опросов в Teleg
 | `TelegramApi.Application` | Команды, запросы, handlers, валидация, интерфейсы |
 | `TelegramApi.Domain` | Сущности и enum |
 | `TelegramApi.Infrastructure` | EF Core, миграции, Telegram.Bot, health checks |
-| `TelegramApi.Tests` | Unit-тесты (валидация, домен) и интеграционные тесты API с PostgreSQL в Docker |
 
 ## Запуск локально
 
@@ -61,15 +60,7 @@ docker run --rm -p 8080:8080 \
 | `GET /api/publications-history` | Единая история: фильтры `status`, `channelAlias`, `from`, `to`, пагинация `page`, `pageSize` |
 | `GET /api/bot/check` | Проверка токена бота |
 | `GET /api/channels/{alias}` | Информация о канале |
-| `GET /health`, `GET /health/telegram` | Health checks: приложение и PostgreSQL / Telegram отдельно |
-
-## Тесты
-
-```bash
-dotnet test
-```
-
-Интеграционные тесты поднимают PostgreSQL через Testcontainers, поэтому нужен запущенный Docker. Telegram в тестах подменяется, реальные сообщения не отправляются.
+| `GET /health` | Health check: приложение и PostgreSQL (Telegram проверяется отдельно через `GET /api/bot/check`) |
 
 ## Решения и ограничения
 
@@ -85,7 +76,7 @@ dotnet test
 | Telegram вернул ошибку или недоступен | 502 |
 | Telegram не ответил за `TelegramBot:TimeoutSeconds` | 504 |
 
-Если Telegram отказал после создания записи, она остаётся в истории со статусом `Failed`, а её идентификатор приходит в поле `publicationId` ответа с ошибкой.
+Если Telegram отказал после создания записи, она остаётся в истории со статусом `Failed`.
 
 **Жизненный цикл.** Запись создаётся до отправки со статусом `Failed`, после подтверждения Telegram получает `Sent`, после удаления сообщений в Telegram `Deleted`. Автоматических повторов нет, `Telegram.Bot` настроен без retry.
 
@@ -101,4 +92,4 @@ dotnet test
 
 **Закрепление.** Только для `Sent`, у альбома закрепляется первое сообщение. Повторные вызовы безопасны. Боту нужно право администратора на закрепление (в канале это право редактирования сообщений), иначе 403.
 
-**Идемпотентность создания.** Заголовок `Idempotency-Key` (до 255 видимых ASCII-символов) для `POST /api/publications`, `/api/media-publications`, `/api/polls`. Ключ хранится в записи бессрочно, уникален в БД. Повтор того же запроса возвращает существующую запись с кодом 200 и заголовком `Idempotent-Replayed: true` без повторной отправки в Telegram. Тот же ключ с другим содержимым (включая содержимое файлов) возвращает 409.
+**Идемпотентность создания.** Заголовок `Idempotency-Key` (до 255 видимых ASCII-символов) для `POST /api/publications`, `/api/media-publications`, `/api/polls`. Ключ хранится в записи бессрочно, уникален в БД. Повтор того же запроса возвращает существующую запись с кодом 200 без повторной отправки в Telegram. Тот же ключ с другим содержимым (включая содержимое файлов) возвращает 409.

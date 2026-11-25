@@ -11,20 +11,9 @@ public static class DependencyInjection
 {
     private const string ConnectionStringName = "DefaultConnection";
 
-    /// <summary>Останавливает запуск с понятной ошибкой, если строка подключения не задана.</summary>
-    public static void EnsureConnectionStringConfigured(IConfiguration configuration)
-    {
-        if (string.IsNullOrWhiteSpace(configuration.GetConnectionString(ConnectionStringName)))
-        {
-            throw new InvalidOperationException(
-                "ConnectionStrings:DefaultConnection is not configured. Set it via user-secrets or an environment variable.");
-        }
-    }
-
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Пустая строка подключения допустима только для инструментов EF (dotnet ef ... --connection):
-        // при обычном запуске её проверяет EnsureConnectionStringConfigured.
+        // Пустая строка подключения допустима для инструментов EF (dotnet ef ... --connection).
         var connectionString = configuration.GetConnectionString(ConnectionStringName);
         services.AddDbContext<TelegramApiDbContext>(options =>
         {
@@ -41,10 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<TelegramApiDbContext>());
 
         services.AddOptions<TelegramBotOptions>()
-            .Bind(configuration.GetSection(TelegramBotOptions.SectionName))
-            .ValidateDataAnnotations()
-            .Validate(o => o.BotToken.Contains(':'), "TelegramBot:BotToken has an invalid format.")
-            .ValidateOnStart();
+            .Bind(configuration.GetSection(TelegramBotOptions.SectionName));
 
         services.AddSingleton<ITelegramBotClient>(sp =>
         {

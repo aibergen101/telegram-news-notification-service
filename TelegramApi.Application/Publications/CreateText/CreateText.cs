@@ -51,7 +51,7 @@ public class CreateTextPublicationHandler
         ILogger<CreateTextPublicationHandler> logger,
         CancellationToken ct)
     {
-        var alias = ChannelAlias.Normalize(command.ChannelAlias);
+        var alias = command.ChannelAlias;
 
         string? hash = null;
         if (command.IdempotencyKey is { } key)

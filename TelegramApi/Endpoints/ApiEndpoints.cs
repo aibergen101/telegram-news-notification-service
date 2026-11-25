@@ -127,7 +127,7 @@ public static class PublicationEndpoints
         CreateResult<TDetails> result,
         TResponse response) =>
         result.Replayed
-            ? new ReplayedResult<TResponse>(response)
+            ? TypedResults.Ok(response)
             : TypedResults.Created(location, response);
 }
 
@@ -248,16 +248,6 @@ internal static class IdempotencyDocs
         + "не публикует сообщение заново и возвращает уже созданную запись с кодом 200; тот же ключ с другим содержимым — 409.";
 }
 
-/// <summary>200 OK для повторённого запроса создания, с заголовком Idempotent-Replayed.</summary>
-internal sealed class ReplayedResult<T>(T value) : IResult
-{
-    public Task ExecuteAsync(HttpContext httpContext)
-    {
-        httpContext.Response.Headers["Idempotent-Replayed"] = "true";
-        return TypedResults.Ok(value).ExecuteAsync(httpContext);
-    }
-}
-
 public static class HistoryEndpoints
 {
     public static IEndpointRouteBuilder MapHistoryEndpoints(this IEndpointRouteBuilder app)
@@ -312,7 +302,7 @@ public static class TelegramEndpoints
         group.MapGet("/channels/{alias}", GetChannelAsync)
             .WithName("GetChannelInfo")
             .WithSummary("Информация о канале")
-            .WithDescription("Alias можно указывать с @ или без.")
+            .WithDescription("Alias канала вместе с @, например @my_channel.")
             .Produces<ChannelInfoResponse>()
             .ProducesValidationProblem()
             .ProducesTelegramProblems();

@@ -67,7 +67,7 @@ public class GetHistoryHandler
         IApplicationDbContext db,
         CancellationToken ct)
     {
-        var alias = string.IsNullOrWhiteSpace(query.ChannelAlias) ? null : ChannelAlias.Normalize(query.ChannelAlias);
+        var alias = string.IsNullOrWhiteSpace(query.ChannelAlias) ? null : query.ChannelAlias;
 
         var publications = db.Publications.AsNoTracking().AsQueryable();
         var polls = db.Polls.AsNoTracking().AsQueryable();
