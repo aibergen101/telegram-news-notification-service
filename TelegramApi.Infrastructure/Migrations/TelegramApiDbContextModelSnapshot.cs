@@ -69,10 +69,9 @@ namespace TelegramApi.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("TgFileId")
-                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("TgMessageId")
+                    b.Property<int?>("TgMessageId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -224,6 +223,9 @@ namespace TelegramApi.Infrastructure.Migrations
 
                     b.Property<bool>("IsPinned")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Link")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("PinnedAt")
                         .HasColumnType("timestamp with time zone");

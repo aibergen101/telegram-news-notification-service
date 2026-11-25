@@ -58,7 +58,7 @@ public sealed class DomainAndRulesTests
     {
         var publication = new Publication { Text = "old", Buttons = [new Button { Text = "a", Url = "https://a" }] };
 
-        publication.MarkEdited("new", TextFormat.Html, [], Now);
+        publication.MarkEdited("new", null, TextFormat.Html, [], Now);
 
         Assert.Equal("new", publication.Text);
         Assert.Equal(TextFormat.Html, publication.Format);

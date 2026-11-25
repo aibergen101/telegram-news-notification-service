@@ -21,7 +21,8 @@ public class DeletePublicationHandler
             ?? throw new NotFoundException($"Publication {command.Id} was not found.");
 
         var messageIds = publication.MediaFiles
-            .Select(m => m.TgMessageId)
+            .Where(m => m.TgMessageId.HasValue)
+            .Select(m => m.TgMessageId!.Value)
             .Append(publication.TgMsgId)
             .Where(id => id > 0)
             .Distinct()
