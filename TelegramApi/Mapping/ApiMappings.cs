@@ -2,33 +2,46 @@ using TelegramApi.Application.Common;
 using TelegramApi.Application.Polls.CreatePoll;
 using TelegramApi.Application.Publications.CreateMedia;
 using TelegramApi.Application.Publications.CreateText;
+using TelegramApi.Application.Publications.EditPublication;
 using TelegramApi.Contracts;
 
 namespace TelegramApi.Mapping;
 
 public static class ApiMappings
 {
-    public static CreateTextPublicationCommand ToCommand(this CreateTextPublicationRequest request) => new(
+    public static CreateTextPublicationCommand ToCommand(this CreateTextPublicationRequest request, string? idempotencyKey) => new(
         request.ChannelAlias,
         request.Text,
         request.Format,
-        (request.Buttons ?? []).Select(b => new ButtonDto(b.Text, b.Url)).ToList());
+        request.Buttons.ToDtos(),
+        idempotencyKey);
 
-    public static CreateQuestionPollCommand ToCommand(this CreatePollRequest request) => new(
+    public static EditPublicationCommand ToCommand(this EditPublicationRequest request, Guid id) => new(
+        id,
+        string.IsNullOrWhiteSpace(request.Text) ? null : request.Text,
+        request.Format,
+        request.Buttons.ToDtos());
+
+    public static CreateQuestionPollCommand ToCommand(this CreatePollRequest request, string? idempotencyKey) => new(
         request.ChannelAlias,
         request.Question,
         (request.Options ?? []).Select(o => new PollOptionDto(o.Text)).ToList(),
         request.AllowMultipleAnswers,
         request.IsAnonymous,
-        request.Duration);
+        request.Duration,
+        idempotencyKey);
 
-    public static CreateMediaPublicationCommand ToCommand(this CreateMediaPublicationRequest request) => new(
+    public static CreateMediaPublicationCommand ToCommand(this CreateMediaPublicationRequest request, string? idempotencyKey) => new(
         request.ChannelAlias,
         string.IsNullOrWhiteSpace(request.Text) ? null : request.Text,
         request.Format,
         (request.Files ?? new FormFileCollection())
             .Select(f => new MediaFileDto(f.FileName, f.OpenReadStream(), f.ContentType, f.Length))
-            .ToList());
+            .ToList(),
+        idempotencyKey);
+
+    private static List<ButtonDto> ToDtos(this List<ButtonRequest>? buttons) =>
+        (buttons ?? []).Select(b => new ButtonDto(b.Text, b.Url)).ToList();
 
     public static PublicationResponse ToResponse(this PublicationDetails p) => new(
         p.Id,
@@ -40,8 +53,10 @@ public static class ApiMappings
         p.Format,
         p.Buttons.Select(b => new ButtonResponse(b.Text, b.Url)).ToList(),
         p.MediaFiles.Select(m => new MediaFileResponse(m.FileName, m.MediaType, m.TgFileId, m.TgMessageId, m.Order)).ToList(),
+        p.IsPinned,
         p.CreatedAt,
         p.SentAt,
+        p.EditedAt,
         p.DeletedAt,
         p.UpdatedAt,
         p.ErrorCode,
@@ -60,6 +75,7 @@ public static class ApiMappings
         p.IsAnonymous,
         p.Duration,
         p.IsClosed,
+        p.IsPinned,
         p.CreatedAt,
         p.SentAt,
         p.ClosedAt,

@@ -1,4 +1,6 @@
+using System.Security.Cryptography;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TelegramApi.Application.Common;
 using TelegramApi.Domain;
@@ -9,7 +11,8 @@ public record CreateMediaPublicationCommand(
     string ChannelAlias,
     string? Text,
     TextFormat Format,
-    IReadOnlyList<MediaFileDto> Files);
+    IReadOnlyList<MediaFileDto> Files,
+    string? IdempotencyKey = null);
 
 public class CreateMediaPublicationValidator : AbstractValidator<CreateMediaPublicationCommand>
 {
@@ -36,6 +39,8 @@ public class CreateMediaPublicationValidator : AbstractValidator<CreateMediaPubl
             .WithMessage("Images and documents cannot be mixed in one publication: Telegram does not allow such albums.");
 
         RuleForEach(x => x.Files).SetValidator(new MediaFileDtoValidator());
+
+        RuleFor(x => x.IdempotencyKey).MustBeIdempotencyKey();
     }
 }
 
@@ -69,7 +74,7 @@ public class MediaFileDtoValidator : AbstractValidator<MediaFileDto>
 
 public class CreateMediaPublicationHandler
 {
-    public static async Task<PublicationDetails> Handle(
+    public static async Task<CreateResult<PublicationDetails>> Handle(
         CreateMediaPublicationCommand command,
         IApplicationDbContext db,
         ITelegramService telegram,
@@ -77,6 +82,15 @@ public class CreateMediaPublicationHandler
         CancellationToken ct)
     {
         var alias = ChannelAlias.Normalize(command.ChannelAlias);
+        var requestHash = command.IdempotencyKey is null ? null : await ComputeRequestHashAsync(command, alias, ct);
+        var lookup = db.Publications.Include(p => p.Buttons).Include(p => p.MediaFiles);
+
+        var existing = await Idempotency.FindExistingAsync(lookup, command.IdempotencyKey, requestHash, ct);
+        if (existing is not null)
+        {
+            return new CreateResult<PublicationDetails>(existing.ToDetails(), IsReplay: true);
+        }
+
         await telegram.EnsureCanPublishAsync(alias, ct);
 
         var publication = new Publication
@@ -85,11 +99,16 @@ public class CreateMediaPublicationHandler
             TgAlias = alias,
             Text = command.Text,
             Format = command.Format,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            IdempotencyKey = command.IdempotencyKey,
+            RequestHash = requestHash
         };
 
-        db.Publications.Add(publication);
-        await db.SaveChangesAsync(ct);
+        var concurrent = await Idempotency.SaveNewAsync(db, db.Publications, lookup, publication, ct);
+        if (concurrent is not null)
+        {
+            return new CreateResult<PublicationDetails>(concurrent.ToDetails(), IsReplay: true);
+        }
 
         await PublishFlow.ExecuteAsync(publication, db, logger, async () =>
         {
@@ -111,6 +130,40 @@ public class CreateMediaPublicationHandler
             publication.MarkSent(results[0].ChatId, results[0].MessageId, DateTime.UtcNow);
         });
 
-        return publication.ToDetails();
+        return new CreateResult<PublicationDetails>(publication.ToDetails(), IsReplay: false);
+    }
+
+    /// <summary>
+    /// Файлы сравниваются по имени, типу и SHA-256 содержимого.
+    /// После хеширования поток возвращается в начало, чтобы его можно было отправить в Telegram.
+    /// </summary>
+    private static async Task<string> ComputeRequestHashAsync(
+        CreateMediaPublicationCommand command,
+        string alias,
+        CancellationToken ct)
+    {
+        var files = new List<object>(command.Files.Count);
+
+        foreach (var file in command.Files)
+        {
+            string? contentHash = null;
+            if (file.Content.CanSeek)
+            {
+                var start = file.Content.Position;
+                contentHash = Convert.ToHexString(await SHA256.HashDataAsync(file.Content, ct));
+                file.Content.Position = start;
+            }
+
+            files.Add(new { file.FileName, file.ContentType, file.Length, ContentHash = contentHash });
+        }
+
+        return Idempotency.ComputeHash(new
+        {
+            Kind = "media",
+            ChannelAlias = alias,
+            command.Text,
+            command.Format,
+            Files = files
+        });
     }
 }

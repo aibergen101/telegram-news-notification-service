@@ -34,6 +34,25 @@ public interface ITelegramService
         int? durationSeconds,
         CancellationToken ct);
 
+    /// <summary>
+    /// Меняет текст и кнопки текстового сообщения. Пустой список кнопок убирает клавиатуру.
+    /// Если содержимое не изменилось, считается успехом.
+    /// </summary>
+    Task EditTextAsync(
+        long chatId,
+        int messageId,
+        string text,
+        TextFormat format,
+        IReadOnlyList<ButtonDto> buttons,
+        CancellationToken ct);
+
+    /// <summary>Меняет подпись медиа-сообщения; null убирает подпись. Если подпись не изменилась, считается успехом.</summary>
+    Task EditCaptionAsync(long chatId, int messageId, string? caption, TextFormat format, CancellationToken ct);
+
+    Task PinMessageAsync(long chatId, int messageId, bool disableNotification, CancellationToken ct);
+
+    Task UnpinMessageAsync(long chatId, int messageId, CancellationToken ct);
+
     /// <summary>Закрывает опрос; если Telegram уже закрыл его сам, считается успехом.</summary>
     Task StopPollAsync(long chatId, int messageId, CancellationToken ct);
 

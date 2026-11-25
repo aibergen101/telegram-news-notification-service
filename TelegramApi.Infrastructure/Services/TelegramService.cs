@@ -123,6 +123,46 @@ public class TelegramService(ITelegramBotClient bot, ILogger<TelegramService> lo
         return new SentMessage(message.MessageId, message.Chat.Id);
     }
 
+    public Task EditTextAsync(
+        long chatId,
+        int messageId,
+        string text,
+        TextFormat format,
+        IReadOnlyList<ButtonDto> buttons,
+        CancellationToken ct) =>
+        IgnoreNotModifiedAsync(
+            () => bot.EditMessageText(
+                chatId,
+                messageId,
+                text,
+                parseMode: ToParseMode(format),
+                replyMarkup: BuildKeyboard(buttons),
+                linkPreviewOptions: NoLinkPreview,
+                cancellationToken: ct),
+            messageId,
+            ct);
+
+    public Task EditCaptionAsync(long chatId, int messageId, string? caption, TextFormat format, CancellationToken ct) =>
+        IgnoreNotModifiedAsync(
+            () => bot.EditMessageCaption(
+                chatId,
+                messageId,
+                caption,
+                parseMode: ToParseMode(format),
+                cancellationToken: ct),
+            messageId,
+            ct);
+
+    public Task PinMessageAsync(long chatId, int messageId, bool disableNotification, CancellationToken ct) =>
+        CallVoidAsync(
+            () => bot.PinChatMessage(chatId, messageId, disableNotification, cancellationToken: ct),
+            ct);
+
+    public Task UnpinMessageAsync(long chatId, int messageId, CancellationToken ct) =>
+        CallVoidAsync(
+            () => bot.UnpinChatMessage(chatId, messageId, cancellationToken: ct),
+            ct);
+
     public async Task StopPollAsync(long chatId, int messageId, CancellationToken ct)
     {
         try
@@ -147,6 +187,20 @@ public class TelegramService(ITelegramBotClient bot, ILogger<TelegramService> lo
         var chat = await GetChatOrThrowAsync(channelAlias, ct);
 
         return new ChannelInfo(chat.Id, chat.Title, chat.Username, chat.Type.ToString());
+    }
+
+    /// <summary>Telegram отвечает ошибкой, если новое содержимое совпадает со старым; для API это успешное редактирование.</summary>
+    private async Task IgnoreNotModifiedAsync(Func<Task> call, int messageId, CancellationToken ct)
+    {
+        try
+        {
+            await CallVoidAsync(call, ct);
+        }
+        catch (TelegramOperationException ex)
+            when (ex.Message.Contains("message is not modified", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogInformation("Message {MessageId} already has the requested content", messageId);
+        }
     }
 
     private async Task<ChatFullInfo> GetChatOrThrowAsync(string channelAlias, CancellationToken ct)

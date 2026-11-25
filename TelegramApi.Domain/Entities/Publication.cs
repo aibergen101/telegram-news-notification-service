@@ -11,4 +11,20 @@ public class Publication : PublishableEntity
     public List<Button> Buttons { get; set; } = [];
 
     public List<MediaFile> MediaFiles { get; set; } = [];
+
+    /// <summary>Когда сообщение в Telegram последний раз редактировалось через API.</summary>
+    public DateTime? EditedAt { get; set; }
+
+    /// <summary>Медиа-публикация: в Telegram у неё редактируется только подпись.</summary>
+    public bool HasMedia => MediaFiles.Count > 0;
+
+    public void ApplyEdit(string? text, TextFormat format, List<Button> buttons, DateTime now)
+    {
+        Text = text;
+        Format = format;
+        Buttons.Clear();
+        Buttons.AddRange(buttons);
+        EditedAt = now;
+        UpdatedAt = now;
+    }
 }

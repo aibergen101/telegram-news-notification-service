@@ -16,8 +16,10 @@ public record PublicationDetails(
     TextFormat Format,
     IReadOnlyList<ButtonResult> Buttons,
     IReadOnlyList<MediaFileResult> MediaFiles,
+    bool IsPinned,
     DateTime CreatedAt,
     DateTime? SentAt,
+    DateTime? EditedAt,
     DateTime? DeletedAt,
     DateTime? UpdatedAt,
     int? ErrorCode,
@@ -38,6 +40,7 @@ public record PollDetails(
     bool IsAnonymous,
     int? Duration,
     bool IsClosed,
+    bool IsPinned,
     DateTime CreatedAt,
     DateTime? SentAt,
     DateTime? ClosedAt,
@@ -56,5 +59,8 @@ public record HistoryItemResult(
     DateTime CreatedAt,
     DateTime? SentAt,
     DateTime? DeletedAt);
+
+/// <summary>Результат создания: новая запись или уже существующая по тому же ключу идемпотентности.</summary>
+public record CreateResult<T>(T Details, bool IsReplay);
 
 public record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount);

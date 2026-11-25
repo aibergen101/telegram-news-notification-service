@@ -36,6 +36,17 @@ public abstract class PublishableEntity
 
     public DateTime? ErrorDate { get; set; }
 
+    /// <summary>Закреплено ли сообщение в канале (по последней операции через API).</summary>
+    public bool IsPinned { get; set; }
+
+    /// <summary>
+    /// Ключ идемпотентности из заголовка Idempotency-Key. Хранится бессрочно, уникален в таблице.
+    /// </summary>
+    public string? IdempotencyKey { get; set; }
+
+    /// <summary>SHA-256 содержимого запроса, с которым был использован ключ идемпотентности.</summary>
+    public string? RequestHash { get; set; }
+
     public void MarkSent(long chatId, int messageId, DateTime now)
     {
         TgChatId = chatId;
@@ -54,10 +65,17 @@ public abstract class PublishableEntity
         UpdatedAt = now;
     }
 
+    public void MarkPinned(bool isPinned, DateTime now)
+    {
+        IsPinned = isPinned;
+        UpdatedAt = now;
+    }
+
     public void MarkDeleted(DateTime now)
     {
         Status = PublicationStatus.Deleted;
         DeletedAt = now;
+        IsPinned = false;
         UpdatedAt = now;
     }
 }

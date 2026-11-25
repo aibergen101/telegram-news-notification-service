@@ -8,4 +8,4 @@
 **/*.user
 Dockerfile
 .dockerignore
-README.md
+README.mdTelegramApi.Tests/

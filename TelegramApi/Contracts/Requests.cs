@@ -15,6 +15,12 @@ public record CreateTextPublicationRequest(
     [property: Description("Форматирование текста: Plain, Html или MarkdownV2.")] TextFormat Format = TextFormat.Plain,
     [property: Description("Кнопки со ссылками, до 100 штук.")] List<ButtonRequest>? Buttons = null);
 
+[Description("Новое содержимое опубликованного сообщения. Заменяет текст, форматирование и кнопки целиком.")]
+public record EditPublicationRequest(
+    [property: Description("Текстовая публикация: новый текст, 1–4096 символов. Медиа-публикация: новая подпись до 1024 символов; пустое значение убирает подпись.")] string? Text,
+    [property: Description("Форматирование: Plain, Html или MarkdownV2.")] TextFormat Format = TextFormat.Plain,
+    [property: Description("Кнопки со ссылками, до 100 штук; только для текстовых публикаций. Пустой список убирает кнопки.")] List<ButtonRequest>? Buttons = null);
+
 [Description("Вариант ответа в опросе.")]
 public record PollOptionRequest(
     [property: Description("Текст варианта, 1–100 символов.")] string Text);

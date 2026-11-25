@@ -78,3 +78,41 @@ public static class DeletionFlow
         logger.LogInformation("Publication {PublicationId} in {Channel} deleted", entity.Id, entity.TgAlias);
     }
 }
+
+/// <summary>
+/// Общий сценарий закрепления и открепления для публикаций и опросов.
+/// Telegram вызывается всегда, даже если запись уже в нужном состоянии: сообщение могли открепить вручную в канале.
+/// </summary>
+public static class PinFlow
+{
+    public static async Task ExecuteAsync(
+        PublishableEntity entity,
+        bool pin,
+        bool disableNotification,
+        IApplicationDbContext db,
+        ITelegramService telegram,
+        ILogger logger,
+        CancellationToken ct)
+    {
+        if (entity.Status != PublicationStatus.Sent)
+        {
+            throw new ConflictException(
+                $"Record {entity.Id} has status {entity.Status}: only sent messages can be pinned or unpinned.");
+        }
+
+        if (pin)
+        {
+            await telegram.PinMessageAsync(entity.TgChatId, entity.TgMsgId, disableNotification, ct);
+        }
+        else
+        {
+            await telegram.UnpinMessageAsync(entity.TgChatId, entity.TgMsgId, ct);
+        }
+
+        entity.MarkPinned(pin, DateTime.UtcNow);
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation(
+            "Message of {RecordId} in {Channel} {Action}",
+            entity.Id, entity.TgAlias, pin ? "pinned" : "unpinned");
+    }
+}

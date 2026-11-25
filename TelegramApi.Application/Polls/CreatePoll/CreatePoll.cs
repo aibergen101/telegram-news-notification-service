@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TelegramApi.Application.Common;
 using TelegramApi.Domain;
@@ -12,7 +13,8 @@ public record CreateQuestionPollCommand(
     IReadOnlyList<PollOptionDto> Options,
     bool AllowMultipleAnswers,
     bool IsAnonymous,
-    int? Duration);
+    int? Duration,
+    string? IdempotencyKey = null);
 
 public class CreateQuestionPollValidator : AbstractValidator<CreateQuestionPollCommand>
 {
@@ -37,12 +39,14 @@ public class CreateQuestionPollValidator : AbstractValidator<CreateQuestionPollC
             .Must(duration => duration is >= TelegramLimits.MinPollDurationSeconds and <= TelegramLimits.MaxPollDurationSeconds)
             .When(x => x.Duration.HasValue)
             .WithMessage($"Duration must be from {TelegramLimits.MinPollDurationSeconds} to {TelegramLimits.MaxPollDurationSeconds} seconds.");
+
+        RuleFor(x => x.IdempotencyKey).MustBeIdempotencyKey();
     }
 }
 
 public class CreateQuestionPollHandler
 {
-    public static async Task<PollDetails> Handle(
+    public static async Task<CreateResult<PollDetails>> Handle(
         CreateQuestionPollCommand command,
         IApplicationDbContext db,
         ITelegramService telegram,
@@ -50,6 +54,15 @@ public class CreateQuestionPollHandler
         CancellationToken ct)
     {
         var alias = ChannelAlias.Normalize(command.ChannelAlias);
+        var requestHash = command.IdempotencyKey is null ? null : ComputeRequestHash(command, alias);
+        var lookup = db.Polls.Include(p => p.Options);
+
+        var existing = await Idempotency.FindExistingAsync(lookup, command.IdempotencyKey, requestHash, ct);
+        if (existing is not null)
+        {
+            return new CreateResult<PollDetails>(existing.ToDetails(), IsReplay: true);
+        }
+
         await telegram.EnsureCanPublishAsync(alias, ct);
 
         var poll = new Poll
@@ -61,11 +74,16 @@ public class CreateQuestionPollHandler
             IsAnonymous = command.IsAnonymous,
             Duration = command.Duration,
             CreatedAt = DateTime.UtcNow,
-            Options = command.Options.ToEntities()
+            Options = command.Options.ToEntities(),
+            IdempotencyKey = command.IdempotencyKey,
+            RequestHash = requestHash
         };
 
-        db.Polls.Add(poll);
-        await db.SaveChangesAsync(ct);
+        var concurrent = await Idempotency.SaveNewAsync(db, db.Polls, lookup, poll, ct);
+        if (concurrent is not null)
+        {
+            return new CreateResult<PollDetails>(concurrent.ToDetails(), IsReplay: true);
+        }
 
         await PublishFlow.ExecuteAsync(poll, db, logger, async () =>
         {
@@ -81,6 +99,18 @@ public class CreateQuestionPollHandler
             poll.MarkSent(sent.ChatId, sent.MessageId, DateTime.UtcNow);
         });
 
-        return poll.ToDetails();
+        return new CreateResult<PollDetails>(poll.ToDetails(), IsReplay: false);
     }
+
+    private static string ComputeRequestHash(CreateQuestionPollCommand command, string alias) =>
+        Idempotency.ComputeHash(new
+        {
+            Kind = "poll",
+            ChannelAlias = alias,
+            command.Question,
+            command.Options,
+            command.AllowMultipleAnswers,
+            command.IsAnonymous,
+            command.Duration
+        });
 }

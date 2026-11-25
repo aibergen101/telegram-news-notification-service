@@ -8,6 +8,11 @@ public static class ValidationExtensions
         rule.NotEmpty()
             .Matches(ChannelAlias.Pattern)
             .WithMessage("Channel alias must look like @my_channel: 5–32 characters, letters, digits and underscore, starting with a letter.");
+
+    public static IRuleBuilderOptions<T, string?> MustBeIdempotencyKey<T>(this IRuleBuilder<T, string?> rule) =>
+        rule.Must(key => key is null || (key.Length <= Idempotency.MaxKeyLength && !string.IsNullOrWhiteSpace(key)))
+            .WithName("Idempotency-Key")
+            .WithMessage($"Idempotency-Key must be a non-blank string of up to {Idempotency.MaxKeyLength} characters.");
 }
 
 /// <summary>Правила одной кнопки: текст, и ссылка только по https (ТЗ 2.10, 9.7).</summary>
